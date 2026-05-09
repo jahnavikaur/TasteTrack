@@ -19,7 +19,7 @@ with app.app_context():
 @app.route("/")
 def index():
     pantry_count = PantryItem.query.count()
-    expiring_soon = PantryItem.query.filter(PantryItem.expiry_date != None).all()
+    expiring_soon = PantryItem.query.filter(PantryItem.expiry_date.isnot(None)).all()
     expiring_count = sum(1 for i in expiring_soon if i.expiry_date and (i.expiry_date - date.today()).days <= 5)
     last_plan = WeeklyPlan.query.order_by(WeeklyPlan.created_on.desc()).first()
     return render_template("index.html", pantry_count=pantry_count, expiring_count=expiring_count, last_plan=last_plan)
@@ -87,8 +87,9 @@ def recommend():
     meal_type = request.args.get("meal_type", "")
     pantry_items = PantryItem.query.all()
     pantry_list = [{"item_name": p.item_name, "quantity": p.quantity, "unit": p.unit, "expiry_date": p.expiry_date} for p in pantry_items]
+    pantry_names = [p.item_name.lower() for p in pantry_items]
     recipes = recommend_recipes(pantry_list, top_n=20, meal_type=meal_type if meal_type else None)
-    return render_template("recommend.html", recipes=recipes, meal_type=meal_type)
+    return render_template("recommend.html", recipes=recipes, meal_type=meal_type, pantry_names=pantry_names)
 
 # ─── Weekly Plan ─────────────────────────────────────────────────────────────
 @app.route("/weekly_plan")

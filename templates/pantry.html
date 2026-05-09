@@ -88,6 +88,13 @@
 
     <!-- PANTRY TABLE -->
     <div>
+      <div style="background:linear-gradient(135deg,rgba(232,184,109,0.08),rgba(201,125,58,0.05));border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.5rem;margin-bottom:1.25rem;display:flex;align-items:center;justify-content:space-between;">
+  <div>
+    <div style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--accent);font-weight:600;">Your Grocery Shelf</div>
+    <div style="font-size:0.85rem;color:var(--muted);margin-top:2px;">Items sorted & tracked by freshness</div>
+  </div>
+  <div style="font-size:2rem;letter-spacing:0.5rem;opacity:0.6;">🥕 🧅 🍅 🧄 🫙 🥬</div>
+</div>
       <div class="toolbar">
         <form method="GET" style="display:contents">
           <div class="search-wrap">
@@ -149,8 +156,8 @@
               </td>
               <td>
                 <div style="display:flex; gap:6px;">
-                  <button class="btn btn-ghost btn-sm" onclick="toggleEdit({{ item.id }})">Edit</button>
-                  <form method="POST" action="/delete_item/{{ item.id }}" onsubmit="return confirm('Remove {{ item.item_name }}?')">
+                  <button class="btn btn-ghost btn-sm" data-toggle-edit="{{ item.id }}">Edit</button>
+                  <form method="POST" action="/delete_item/{{ item.id }}" onsubmit="return confirm('Remove {{ item.item_name|escapejs }}?')">
                     <button type="submit" class="btn btn-danger btn-sm">✕</button>
                   </form>
                 </div>
@@ -177,7 +184,7 @@
                   </div>
                   <div style="display:flex; gap:6px;">
                     <button type="submit" class="btn btn-primary btn-sm">Save</button>
-                    <button type="button" class="btn btn-ghost btn-sm" onclick="toggleEdit({{ item.id }})">Cancel</button>
+                    <button type="button" class="btn btn-ghost btn-sm" data-toggle-edit="{{ item.id }}">Cancel</button>
                   </div>
                 </form>
               </td>
@@ -187,7 +194,10 @@
         </table>
         {% else %}
         <div class="empty-state">
-          <div class="icon">🛒</div>
+<div class="icon">🛒</div>
+<div style="font-size:2rem;opacity:0.3;margin-bottom:1rem;">
+  🥕 🧅 🍅 🧄 🌿 🫙
+</div>
           <h3>Your pantry is empty</h3>
           <p>Add your first ingredient using the form on the left.</p>
         </div>
@@ -208,5 +218,9 @@
     const row = document.getElementById('edit-' + id);
     row.style.display = row.style.display === 'none' ? 'table-row' : 'none';
   }
+
+  document.querySelectorAll('[data-toggle-edit]').forEach(button => {
+    button.addEventListener('click', () => toggleEdit(button.dataset.toggleEdit));
+  });
 </script>
 {% endblock %}

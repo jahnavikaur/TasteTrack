@@ -9,6 +9,8 @@ def generate_weekly_plan(pantry_items):
     used_recipes = set()
 
     all_recs = recommend_recipes(pantry_items, top_n=50)
+    if not all_recs:
+        return {day: {meal: {"recipe_id": None, "name": "No recipe available", "cuisine": "", "time": "", "ingredients": [], "matched": 0, "missing": 0} for meal in MEAL_TYPES} for day in DAYS}
 
     for day in DAYS:
         plan[day] = {}
@@ -19,7 +21,7 @@ def generate_weekly_plan(pantry_items):
             if not meal_filtered:
                 meal_filtered = all_recs
 
-            chosen = meal_filtered[0] if meal_filtered else random.choice(all_recs)
+            chosen = meal_filtered[0]
             used_recipes.add(chosen["recipe_id"])
 
             plan[day][meal] = {

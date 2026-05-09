@@ -9,12 +9,25 @@
     padding: 4rem 2rem;
     position: relative; overflow: hidden;
   }
-  .hero-bg {
-    position: absolute; inset: 0; z-index: 0;
-    background:
-      radial-gradient(ellipse 60% 50% at 80% 20%, rgba(232,184,109,0.07) 0%, transparent 70%),
-      radial-gradient(ellipse 50% 60% at 10% 80%, rgba(201,125,58,0.06) 0%, transparent 70%);
-  }
+ .hero-bg {
+  position: absolute; inset: 0; z-index: 0;
+  background:
+    radial-gradient(ellipse 40% 60% at 90% 50%, rgba(201,125,58,0.18) 0%, transparent 60%),
+    radial-gradient(ellipse 30% 40% at 5% 20%, rgba(232,184,109,0.10) 0%, transparent 60%);
+}
+.hero-bg::after {
+  content: '🍅 🧅 🌿 🥕 🧄 🫙 🥦 🍋 🫐 🌶️';
+  position: absolute;
+  right: 3rem; top: 50%; transform: translateY(-50%);
+  font-size: 3.5rem;
+  line-height: 2;
+  word-spacing: 1.5rem;
+  writing-mode: vertical-lr;
+  opacity: 0.18;
+  letter-spacing: 1rem;
+  pointer-events: none;
+  filter: grayscale(20%);
+}
   .hero-content { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; width: 100%; }
   .hero-eyebrow {
     font-size: 0.78rem; letter-spacing: 0.15em; text-transform: uppercase;
@@ -38,6 +51,8 @@
     position: absolute; right: 1rem; bottom: 0.5rem;
     font-size: 2.5rem; opacity: 0.12;
   }
+  .stat-value.ok { color: var(--green); }
+  .stat-value.warning { color: var(--yellow); }
 
   .features { max-width: 1100px; margin: 0 auto; padding: 5rem 2rem; }
   .features h2 { font-family: var(--font-display); font-size: 2rem; margin-bottom: 0.5rem; }
@@ -78,7 +93,9 @@
       <a href="/pantry" class="btn btn-primary" style="font-size:1rem; padding:12px 28px;">Manage Pantry →</a>
       <a href="/weekly_plan" class="btn btn-ghost" style="font-size:1rem; padding:12px 28px;">Generate Weekly Plan</a>
     </div>
-
+ <div style="display:flex;align-items:center;gap:1.5rem;margin-bottom:1rem;opacity:0.35;font-size:1.8rem;">
+  🫙 🧂 🍯 🫒 🌿 🍴 🔪 🥄 🫕
+</div>
     <div class="stats-row">
       <div class="stat-card card" data-icon="🧅">
         <div class="stat-label">Pantry Items</div>
@@ -87,7 +104,7 @@
       </div>
       <div class="stat-card card" data-icon="⚠️">
         <div class="stat-label">Expiring Soon</div>
-        <div class="stat-value" style="color: {% if expiring_count > 0 %}var(--yellow){% else %}var(--green){% endif %}">{{ expiring_count }}</div>
+        <div class="stat-value {% if expiring_count > 0 %}warning{% else %}ok{% endif %}">{{ expiring_count }}</div>
         <div class="stat-sub">items within 5 days</div>
       </div>
       <div class="stat-card card" data-icon="📖">

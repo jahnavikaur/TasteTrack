@@ -28,12 +28,14 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html { scroll-behavior: smooth; }
     body {
-      font-family: var(--font-body);
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-      line-height: 1.6;
-    }
+  font-family: var(--font-body);
+  background-color: #0f0e0c;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cg fill='none' stroke='%23ffffff' stroke-width='1' opacity='0.04'%3E%3C!-- Chef knife --%3E%3Cpath d='M10 10 L40 40 L38 42 L8 12 Z'/%3E%3Cline x1='40' y1='40' x2='45' y2='45'/%3E%3C!-- Fork --%3E%3Cline x1='70' y1='8' x2='70' y2='40'/%3E%3Cline x1='65' y1='8' x2='65' y2='22'/%3E%3Cline x1='75' y1='8' x2='75' y2='22'/%3E%3Cline x1='65' y1='22' x2='75' y2='22'/%3E%3C!-- Spoon --%3E%3Cellipse cx='100' cy='15' rx='6' ry='9'/%3E%3Cline x1='100' y1='24' x2='100' y2='55'/%3E%3C!-- Pan --%3E%3Ccircle cx='30' cy='85' r='18'/%3E%3Cline x1='48' y1='85' x2='65' y2='85'/%3E%3C!-- Whisk --%3E%3Cline x1='90' y1='65' x2='90' y2='110'/%3E%3Cellipse cx='90' cy='72' rx='10' ry='14'/%3E%3C!-- Small pot --%3E%3Crect x='5' y='60' width='22' height='18' rx='3'/%3E%3Cline x1='3' y1='63' x2='0' y2='63'/%3E%3Cline x1='27' y1='63' x2='30' y2='63'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 120px 120px;
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.6;
+}
 
     /* NAV */
     nav {
@@ -174,7 +176,10 @@
 </head>
 <body>
   <nav>
-    <a href="/" class="nav-logo"><span>🍳</span> KitchenMind AI</a>
+<a href="/" class="nav-logo">
+  <span style="background:var(--accent);color:#1a1510;width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;">🍳</span>
+  KitchenMind AI
+</a>
     <div class="nav-links">
       <a href="/" class="{% if request.endpoint == 'index' %}active{% endif %}">Home</a>
       <a href="/pantry" class="{% if request.endpoint == 'pantry' %}active{% endif %}">Pantry</a>

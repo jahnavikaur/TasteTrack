@@ -30,6 +30,9 @@
     font-size: 0.68rem; font-weight: 700; letter-spacing: 0.08em;
     text-transform: uppercase; margin-bottom: 0.35rem;
   }
+  .match-dot.green { background: var(--green); }
+  .match-dot.yellow { background: var(--yellow); }
+  .match-dot.red { background: var(--red); }
   .meal-type-label.breakfast { color: #e8b86d; }
   .meal-type-label.lunch { color: #7ec98a; }
   .meal-type-label.dinner { color: #9d8de0; }
@@ -113,7 +116,7 @@
         <div class="meal-sub">
           {{ meal.cuisine }}{% if meal.time %} · {{ meal.time }}m{% endif %}
         </div>
-        <div class="match-dot" style="background:{% if meal.missing == 0 %}var(--green){% elif meal.matched > meal.missing %}var(--yellow){% else %}var(--red){% endif %}"></div>
+        <div class="match-dot {% if meal.missing == 0 %}green{% elif meal.matched > meal.missing %}yellow{% else %}red{% endif %}"></div>
       </div>
 
       <!-- Detail Modal -->
@@ -172,7 +175,7 @@
 
   <div class="save-bar">
     <p>✅ Saving will deduct used ingredients from your pantry automatically.</p>
-    <button onclick="savePlan()" class="btn btn-primary" style="font-size:0.95rem; padding:11px 28px;">
+    <button onclick="savePlan(event)" class="btn btn-primary" style="font-size:0.95rem; padding:11px 28px;">
       💾 Save Plan & Update Pantry
     </button>
   </div>
@@ -185,8 +188,8 @@
     document.getElementById('modal-' + id).classList.add('open');
   }
 
-  async function savePlan() {
-    const btn = event.target;
+  async function savePlan(event) {
+    const btn = event.currentTarget || event.target;
     btn.textContent = 'Saving...';
     btn.disabled = true;
 

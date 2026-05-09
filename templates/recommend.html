@@ -88,9 +88,12 @@
     {% for r in recipes %}
     {% set max_score = 20 %}
     {% set pct = [((r.score / max_score) * 100)|int, 100]|min %}
-    <div class="recipe-card" onclick="openModal({{ loop.index0 }})">
+    <div class="recipe-card" data-modal-index="{{ loop.index0 }}">
       <div class="recipe-card-header">
-        <div class="recipe-meal-badge">{{ r.meal_type }} · {{ r.cuisine }}</div>
+      <div class="recipe-meal-badge">
+  {% if r.meal_type == 'Breakfast' %}🌅{% elif r.meal_type == 'Lunch' %}☀️{% else %}🌙{% endif %}
+  {{ r.meal_type }} · {{ r.cuisine }}
+</div>
         <div class="recipe-name">{{ r.name }}</div>
         <div class="recipe-meta">
           <span>⏱ {{ r.time }} min</span>
@@ -100,7 +103,7 @@
       <div class="recipe-card-body">
         <div class="score-bar">
           <div class="score-track">
-            <div class="score-fill" style="width: {{ pct }}%"></div>
+            <div class="score-fill" data-score="{{ pct }}"></div>
           </div>
           <div class="score-num">{{ r.score }}</div>
         </div>
@@ -123,9 +126,9 @@
 
   <!-- Modals -->
   {% for r in recipes %}
-  <div class="modal-overlay" id="modal-{{ loop.index0 }}" onclick="closeModal(event, {{ loop.index0 }})">
+  <div class="modal-overlay" id="modal-{{ loop.index0 }}" data-modal-index="{{ loop.index0 }}">
     <div class="modal">
-      <button class="modal-close" onclick="document.getElementById('modal-{{ loop.index0 }}').classList.remove('open')">✕</button>
+      <button type="button" class="modal-close" data-close-modal="{{ loop.index0 }}">✕</button>
       <div style="font-size:0.78rem; text-transform:uppercase; letter-spacing:0.08em; color:var(--accent); margin-bottom:0.5rem;">{{ r.meal_type }} · {{ r.cuisine }}</div>
       <h2>{{ r.name }}</h2>
       <div class="recipe-meta" style="margin:0.5rem 0 0;">
@@ -167,10 +170,28 @@
   function openModal(idx) {
     document.getElementById('modal-' + idx).classList.add('open');
   }
-  function closeModal(e, idx) {
-    if (e.target === e.currentTarget) {
-      document.getElementById('modal-' + idx).classList.remove('open');
-    }
+  function closeModal(idx) {
+    document.getElementById('modal-' + idx).classList.remove('open');
   }
+
+  document.querySelectorAll('.recipe-card[data-modal-index]').forEach(card => {
+    card.addEventListener('click', () => openModal(card.dataset.modalIndex));
+  });
+
+  document.querySelectorAll('.score-fill[data-score]').forEach(fill => {
+    fill.style.width = fill.dataset.score + '%';
+  });
+
+  document.querySelectorAll('.modal-overlay[data-modal-index]').forEach(overlay => {
+    overlay.addEventListener('click', event => {
+      if (event.target === overlay) {
+        closeModal(overlay.dataset.modalIndex);
+      }
+    });
+  });
+
+  document.querySelectorAll('[data-close-modal]').forEach(btn => {
+    btn.addEventListener('click', () => closeModal(btn.dataset.closeModal));
+  });
 </script>
 {% endblock %}
