@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}Plan History — KitchenMind AI{% endblock %}
+
+{% block extra_head %}
+<style>
+  .history-list { display: flex; flex-direction: column; gap: 1.5rem; }
+  .history-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .history-card-header {
+    padding: 1.25rem 1.5rem; display: flex; justify-content: space-between; align-items: center;
+    border-bottom: 1px solid var(--border); cursor: pointer;
+  }
+  .history-card-header:hover { background: rgba(255,255,255,0.02); }
+  .history-title { font-family: var(--font-display); font-size: 1.1rem; }
+  .history-meta { font-size: 0.82rem; color: var(--muted); margin-top: 4px; }
+  .history-body { display: none; padding: 1.5rem; }
+  .history-body.open { display: block; }
+  .mini-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.75rem; }
+  .mini-day-label { font-size: 0.72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; margin-bottom: 0.5rem; }
+  .mini-meal { font-size: 0.75rem; color: var(--text); background: var(--surface2); border-radius: 6px; padding: 4px 8px; margin-bottom: 4px; line-height: 1.3; }
+  .mini-meal-type { font-size: 0.65rem; color: var(--accent); font-weight: 700; }
+
+  .empty-state { text-align:center; padding:5rem 2rem; color:var(--muted); }
+  .empty-state .icon { font-size:4rem; margin-bottom:1rem; }
+  .empty-state h3 { font-family:var(--font-display); font-size:1.4rem; color:var(--text); margin-bottom:0.5rem; }
+
+  @media(max-width:768px) { .mini-grid { grid-template-columns: repeat(3,1fr); } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="page-header">
+    <h1>📋 Plan History</h1>
+    <p>Your last 5 saved weekly meal plans.</p>
+  </div>
+
+  {% if plans %}
+  <div class="history-list">
+    {% for p in plans %}
+    <div class="history-card">
+      <div class="history-card-header" onclick="toggleHistory({{ loop.index0 }})">
+        <div>
+          <div class="history-title">Week of {{ p.week_start.strftime('%B %d, %Y') }}</div>
+          <div class="history-meta">Saved on {{ p.created_on.strftime('%B %d, %Y at %H:%M') }}</div>
+        </div>
+        <span style="color:var(--muted); font-size:1.2rem;" id="arrow-{{ loop.index0 }}">▼</span>
+      </div>
+      <div class="history-body" id="hist-{{ loop.index0 }}">
+        <div class="mini-grid">
+          {% set days_order = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'] %}
+          {% set day_short = {'Monday':'Mon','Tuesday':'Tue','Wednesday':'Wed','Thursday':'Thu','Friday':'Fri','Saturday':'Sat','Sunday':'Sun'} %}
+          {% for day in days_order %}
+          {% if day in p.plan %}
+          <div>
+            <div class="mini-day-label">{{ day_short[day] }}</div>
+            {% for meal_type, meal in p.plan[day].items() %}
+            <div class="mini-meal">
+              <div class="mini-meal-type">{{ meal_type }}</div>
+              {{ meal.name }}
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="icon">📭</div>
+    <h3>No saved plans yet</h3>
+    <p>Generate and save a weekly plan to see it appear here.</p>
+    <a href="/weekly_plan" class="btn btn-primary" style="margin-top:1.5rem;">Create Weekly Plan →</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function toggleHistory(idx) {
+    const body = document.getElementById('hist-' + idx);
+    const arrow = document.getElementById('arrow-' + idx);
+    const isOpen = body.classList.toggle('open');
+    arrow.textContent = isOpen ? '▲' : '▼';
+  }
+</script>
+{% endblock %}

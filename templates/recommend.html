@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+{% block title %}Recipe Suggestions — KitchenMind AI{% endblock %}
+
+{% block extra_head %}
+<style>
+  .filter-bar {
+    display: flex; gap: 0.5rem; margin-bottom: 2rem; flex-wrap: wrap; align-items: center;
+  }
+  .filter-btn {
+    padding: 8px 18px; border-radius: 20px; font-size: 0.85rem; font-weight: 500;
+    border: 1px solid var(--border); background: transparent; color: var(--muted);
+    cursor: pointer; text-decoration: none; transition: all 0.2s;
+  }
+  .filter-btn:hover { color: var(--text); border-color: var(--muted); }
+  .filter-btn.active { background: var(--accent); color: #1a1510; border-color: var(--accent); font-weight: 600; }
+
+  .recipe-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; }
+  .recipe-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); overflow: hidden;
+    transition: transform 0.2s, border-color 0.2s;
+    cursor: pointer;
+  }
+  .recipe-card:hover { transform: translateY(-3px); border-color: rgba(232,184,109,0.4); }
+  .recipe-card-header { padding: 1.25rem 1.25rem 0.75rem; border-bottom: 1px solid var(--border); }
+  .recipe-meal-badge { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); margin-bottom: 0.5rem; }
+  .recipe-name { font-family: var(--font-display); font-size: 1.1rem; font-weight: 600; line-height: 1.3; }
+  .recipe-meta { display: flex; gap: 1rem; margin-top: 0.75rem; font-size: 0.8rem; color: var(--muted); }
+  .recipe-card-body { padding: 1rem 1.25rem; }
+
+  .score-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 1rem; }
+  .score-track { flex: 1; height: 4px; background: var(--surface2); border-radius: 2px; overflow: hidden; }
+  .score-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.5s; }
+  .score-num { font-size: 0.8rem; font-weight: 600; color: var(--accent); min-width: 32px; }
+
+  .match-info { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
+
+  .ingredients-preview { font-size: 0.82rem; color: var(--muted); line-height: 1.5; }
+  .ing-chip {
+    display: inline-block; padding: 2px 8px; border-radius: 12px; margin: 2px;
+    font-size: 0.75rem;
+  }
+  .ing-matched { background: rgba(126,201,138,0.15); color: var(--green); }
+  .ing-missing { background: rgba(224,112,112,0.1); color: rgba(224,112,112,0.6); }
+
+  /* Modal */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; z-index: 500;
+    background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
+    align-items: center; justify-content: center; padding: 2rem;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; max-width: 600px; width: 100%; max-height: 80vh;
+    overflow-y: auto; padding: 2rem; position: relative;
+    animation: modalIn 0.25s ease;
+  }
+  @keyframes modalIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .modal-close { position: absolute; top: 1.25rem; right: 1.25rem; background: var(--surface2); border: none; border-radius: 50%; width: 32px; height: 32px; cursor: pointer; color: var(--muted); font-size: 1rem; }
+  .modal h2 { font-family: var(--font-display); font-size: 1.6rem; margin-bottom: 0.5rem; }
+  .modal-section { margin-top: 1.5rem; }
+  .modal-section h3 { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 0.75rem; }
+  .instructions { line-height: 1.8; color: var(--text); font-size: 0.95rem; }
+
+  .empty-state { text-align:center; padding:5rem 2rem; color:var(--muted); }
+  .empty-state .icon { font-size:4rem; margin-bottom:1rem; }
+  .empty-state h3 { font-family:var(--font-display); font-size:1.4rem; color:var(--text); margin-bottom:0.5rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="page-header">
+    <h1>✨ Recipe Suggestions</h1>
+    <p>Matched to your pantry. Items expiring soon are prioritised.</p>
+  </div>
+
+  <div class="filter-bar">
+    <a href="/recommend" class="filter-btn {% if not meal_type %}active{% endif %}">All Meals</a>
+    <a href="/recommend?meal_type=Breakfast" class="filter-btn {% if meal_type == 'Breakfast' %}active{% endif %}">🌅 Breakfast</a>
+    <a href="/recommend?meal_type=Lunch" class="filter-btn {% if meal_type == 'Lunch' %}active{% endif %}">☀️ Lunch</a>
+    <a href="/recommend?meal_type=Dinner" class="filter-btn {% if meal_type == 'Dinner' %}active{% endif %}">🌙 Dinner</a>
+  </div>
+
+  {% if recipes %}
+  <div class="recipe-grid">
+    {% for r in recipes %}
+    {% set max_score = 20 %}
+    {% set pct = [((r.score / max_score) * 100)|int, 100]|min %}
+    <div class="recipe-card" onclick="openModal({{ loop.index0 }})">
+      <div class="recipe-card-header">
+        <div class="recipe-meal-badge">{{ r.meal_type }} · {{ r.cuisine }}</div>
+        <div class="recipe-name">{{ r.name }}</div>
+        <div class="recipe-meta">
+          <span>⏱ {{ r.time }} min</span>
+          <span>{{ r.ingredients|length }} ingredients</span>
+        </div>
+      </div>
+      <div class="recipe-card-body">
+        <div class="score-bar">
+          <div class="score-track">
+            <div class="score-fill" style="width: {{ pct }}%"></div>
+          </div>
+          <div class="score-num">{{ r.score }}</div>
+        </div>
+        <div class="match-info">
+          <span class="badge badge-green">✓ {{ r.matched }} matched</span>
+          {% if r.missing > 0 %}
+          <span class="badge badge-red">✕ {{ r.missing }} missing</span>
+          {% endif %}
+        </div>
+        <div>
+          {% for ing in r.ingredients[:8] %}
+          <span class="ing-chip {% if ing in pantry_names|default([]) %}ing-matched{% else %}ing-missing{% endif %}">{{ ing }}</span>
+          {% endfor %}
+          {% if r.ingredients|length > 8 %}<span style="font-size:0.75rem; color:var(--muted);">+{{ r.ingredients|length - 8 }} more</span>{% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Modals -->
+  {% for r in recipes %}
+  <div class="modal-overlay" id="modal-{{ loop.index0 }}" onclick="closeModal(event, {{ loop.index0 }})">
+    <div class="modal">
+      <button class="modal-close" onclick="document.getElementById('modal-{{ loop.index0 }}').classList.remove('open')">✕</button>
+      <div style="font-size:0.78rem; text-transform:uppercase; letter-spacing:0.08em; color:var(--accent); margin-bottom:0.5rem;">{{ r.meal_type }} · {{ r.cuisine }}</div>
+      <h2>{{ r.name }}</h2>
+      <div class="recipe-meta" style="margin:0.5rem 0 0;">
+        <span>⏱ {{ r.time }} min</span>
+        <span class="badge badge-green">✓ {{ r.matched }} pantry matches</span>
+        {% if r.missing > 0 %}<span class="badge badge-red">✕ {{ r.missing }} missing</span>{% endif %}
+      </div>
+
+      <div class="modal-section">
+        <h3>Ingredients</h3>
+        <div>
+          {% for ing in r.ingredients %}
+          <span class="ing-chip ing-missing" style="font-size:0.85rem; padding:4px 12px; margin:3px;">{{ ing }}</span>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="modal-section">
+        <h3>Instructions</h3>
+        <p class="instructions">{{ r.instructions }}</p>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+
+  {% else %}
+  <div class="empty-state">
+    <div class="icon">🛒</div>
+    <h3>No recipes found</h3>
+    <p>Add some ingredients to your pantry first, then come back for suggestions.</p>
+    <a href="/pantry" class="btn btn-primary" style="margin-top:1.5rem;">Go to Pantry →</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function openModal(idx) {
+    document.getElementById('modal-' + idx).classList.add('open');
+  }
+  function closeModal(e, idx) {
+    if (e.target === e.currentTarget) {
+      document.getElementById('modal-' + idx).classList.remove('open');
+    }
+  }
+</script>
+{% endblock %}

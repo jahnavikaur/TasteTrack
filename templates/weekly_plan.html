@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+{% block title %}Weekly Plan — KitchenMind AI{% endblock %}
+
+{% block extra_head %}
+<style>
+  .plan-controls {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;
+  }
+  .plan-legend { display: flex; gap: 1rem; font-size: 0.82rem; color: var(--muted); align-items: center; }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+  .week-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1rem; }
+  .day-col { display: flex; flex-direction: column; gap: 0.75rem; }
+  .day-header {
+    font-family: var(--font-display); font-size: 0.9rem; font-weight: 700;
+    color: var(--text); padding: 0.5rem 0; border-bottom: 2px solid var(--accent);
+    margin-bottom: 0.25rem;
+  }
+  .day-header small { display: block; font-family: var(--font-body); font-size: 0.7rem; color: var(--muted); font-weight: 400; margin-top: 2px; }
+
+  .meal-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 0.9rem; cursor: pointer;
+    transition: border-color 0.2s, transform 0.15s;
+    position: relative;
+  }
+  .meal-card:hover { border-color: rgba(232,184,109,0.5); transform: translateY(-1px); }
+  .meal-type-label {
+    font-size: 0.68rem; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; margin-bottom: 0.35rem;
+  }
+  .meal-type-label.breakfast { color: #e8b86d; }
+  .meal-type-label.lunch { color: #7ec98a; }
+  .meal-type-label.dinner { color: #9d8de0; }
+  .meal-name { font-size: 0.82rem; font-weight: 600; line-height: 1.3; color: var(--text); }
+  .meal-sub { font-size: 0.72rem; color: var(--muted); margin-top: 4px; }
+
+  .match-dot {
+    position: absolute; top: 8px; right: 8px;
+    width: 6px; height: 6px; border-radius: 50%;
+  }
+
+  /* Summary panel */
+  .plan-summary {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 1.5rem; margin-top: 2rem;
+  }
+  .summary-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; }
+  .summary-header h2 { font-family: var(--font-display); font-size: 1.2rem; }
+  .ing-cloud { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+  .ing-tag {
+    padding: 4px 12px; border-radius: 20px; font-size: 0.78rem;
+    background: var(--surface2); color: var(--muted); border: 1px solid var(--border);
+  }
+
+  /* Modal */
+  .modal-overlay { display: none; position: fixed; inset: 0; z-index: 500; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); align-items: center; justify-content: center; padding: 2rem; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; max-width: 520px; width: 100%; max-height: 80vh; overflow-y: auto; padding: 2rem; position: relative; animation: modalIn 0.2s ease; }
+  @keyframes modalIn { from { transform: scale(0.96); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .modal-close { position: absolute; top: 1rem; right: 1rem; background: var(--surface2); border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer; color: var(--muted); font-size: 0.9rem; }
+
+  .save-bar {
+    position: sticky; bottom: 0; background: rgba(15,14,12,0.95);
+    backdrop-filter: blur(12px); border-top: 1px solid var(--border);
+    padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center;
+    margin: 0 -2rem; margin-top: 2rem;
+  }
+  .save-bar p { font-size: 0.88rem; color: var(--muted); }
+
+  @media (max-width: 900px) {
+    .week-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+  @media (max-width: 600px) {
+    .week-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="page-header">
+    <h1>📅 Weekly Meal Plan</h1>
+    <p>AI-generated plan based on your pantry. Save it to auto-deduct ingredients.</p>
+  </div>
+
+  <div class="plan-controls">
+    <div class="plan-legend">
+      <span style="display:flex;align-items:center;gap:5px;"><span class="legend-dot" style="background:#e8b86d"></span> Breakfast</span>
+      <span style="display:flex;align-items:center;gap:5px;"><span class="legend-dot" style="background:#7ec98a"></span> Lunch</span>
+      <span style="display:flex;align-items:center;gap:5px;"><span class="legend-dot" style="background:#9d8de0"></span> Dinner</span>
+    </div>
+    <div style="display:flex; gap:0.75rem;">
+      <a href="/weekly_plan" class="btn btn-ghost btn-sm">↻ Regenerate</a>
+    </div>
+  </div>
+
+  <div class="week-grid">
+    {% set days_order = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'] %}
+    {% set day_short = {'Monday':'Mon','Tuesday':'Tue','Wednesday':'Wed','Thursday':'Thu','Friday':'Fri','Saturday':'Sat','Sunday':'Sun'} %}
+    {% for day in days_order %}
+    {% if day in plan %}
+    <div class="day-col">
+      <div class="day-header">
+        {{ day_short[day] }}
+        <small>{{ day }}</small>
+      </div>
+      {% for meal_type, meal in plan[day].items() %}
+      <div class="meal-card" onclick="openModal('{{ day }}-{{ meal_type }}')">
+        <div class="meal-type-label {{ meal_type|lower }}">{{ meal_type }}</div>
+        <div class="meal-name">{{ meal.name }}</div>
+        <div class="meal-sub">
+          {{ meal.cuisine }}{% if meal.time %} · {{ meal.time }}m{% endif %}
+        </div>
+        <div class="match-dot" style="background:{% if meal.missing == 0 %}var(--green){% elif meal.matched > meal.missing %}var(--yellow){% else %}var(--red){% endif %}"></div>
+      </div>
+
+      <!-- Detail Modal -->
+      <div class="modal-overlay" id="modal-{{ day }}-{{ meal_type }}" onclick="if(event.target===this)this.classList.remove('open')">
+        <div class="modal">
+          <button class="modal-close" onclick="document.getElementById('modal-{{ day }}-{{ meal_type }}').classList.remove('open')">✕</button>
+          <div style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--accent);margin-bottom:0.4rem">{{ day }} · {{ meal_type }}</div>
+          <h2 style="font-family:var(--font-display);font-size:1.4rem;margin-bottom:1rem">{{ meal.name }}</h2>
+          <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1.25rem;">
+            {% if meal.matched is defined %}<span class="badge badge-green">✓ {{ meal.matched }} in pantry</span>{% endif %}
+            {% if meal.missing is defined and meal.missing > 0 %}<span class="badge badge-red">✕ {{ meal.missing }} missing</span>{% endif %}
+            {% if meal.cuisine %}<span class="badge badge-accent">{{ meal.cuisine }}</span>{% endif %}
+          </div>
+          <div style="font-size:0.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.5rem;">Ingredients</div>
+          <div>
+            {% for ing in meal.ingredients %}
+            <span style="display:inline-block;padding:4px 12px;border-radius:16px;background:var(--surface2);border:1px solid var(--border);font-size:0.8rem;margin:3px;color:var(--text);">{{ ing }}</span>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% endfor %}
+  </div>
+
+  <!-- Ingredient Summary -->
+  {% set all_ings = [] %}
+  {% for day in days_order %}
+    {% if day in plan %}
+      {% for meal_type, meal in plan[day].items() %}
+        {% for ing in meal.ingredients %}
+          {% if ing not in all_ings %}{% set _ = all_ings.append(ing) %}{% endif %}
+        {% endfor %}
+      {% endfor %}
+    {% endif %}
+  {% endfor %}
+
+  <div class="plan-summary">
+    <div class="summary-header">
+      <h2>🛒 Total Ingredients This Week</h2>
+      <span class="badge badge-accent">{{ all_ings|length }} unique</span>
+    </div>
+    <div class="ing-cloud">
+      {% for ing in all_ings|sort %}
+      <span class="ing-tag">{{ ing }}</span>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Hidden plan data for form submission -->
+  <form method="POST" action="/save_weekly_plan" id="save-form">
+    <input type="hidden" name="plan_data" value="{{ plan | tojson | e }}" />
+  </form>
+
+  <div class="save-bar">
+    <p>✅ Saving will deduct used ingredients from your pantry automatically.</p>
+    <button onclick="savePlan()" class="btn btn-primary" style="font-size:0.95rem; padding:11px 28px;">
+      💾 Save Plan & Update Pantry
+    </button>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function openModal(id) {
+    document.getElementById('modal-' + id).classList.add('open');
+  }
+
+  async function savePlan() {
+    const btn = event.target;
+    btn.textContent = 'Saving...';
+    btn.disabled = true;
+
+    const form = document.getElementById('save-form');
+    const data = new FormData(form);
+
+    try {
+      const res = await fetch('/save_weekly_plan', { method: 'POST', body: data });
+      const json = await res.json();
+      showToast('✅ ' + json.message);
+      btn.textContent = '✅ Saved!';
+      btn.style.background = 'var(--green)';
+    } catch(e) {
+      showToast('Error saving plan.');
+      btn.textContent = '💾 Save Plan & Update Pantry';
+      btn.disabled = false;
+    }
+  }
+</script>
+{% endblock %}

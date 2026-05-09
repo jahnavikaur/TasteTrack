@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+{% block title %}Pantry — KitchenMind AI{% endblock %}
+
+{% block extra_head %}
+<style>
+  .pantry-layout { display: grid; grid-template-columns: 340px 1fr; gap: 2rem; align-items: start; }
+  .add-form { position: sticky; top: 80px; }
+  .add-form h2 { font-family: var(--font-display); font-size: 1.3rem; margin-bottom: 1.5rem; }
+
+  .toolbar { display: flex; gap: 1rem; margin-bottom: 1.5rem; align-items: center; flex-wrap: wrap; }
+  .search-wrap { position: relative; flex: 1; min-width: 200px; }
+  .search-wrap input { padding-left: 36px; }
+  .search-wrap::before { content: '🔍'; position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 0.9rem; z-index: 1; }
+
+  .sort-tabs { display: flex; gap: 4px; background: var(--surface2); border-radius: 8px; padding: 3px; }
+  .sort-tab {
+    padding: 6px 14px; border-radius: 6px; font-size: 0.82rem; font-weight: 500;
+    color: var(--muted); cursor: pointer; text-decoration: none; transition: all 0.2s;
+  }
+  .sort-tab.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+
+  .item-row { display: grid; grid-template-columns: 1fr 100px 80px auto auto; gap: 1rem; align-items: center; }
+  .item-name { font-weight: 500; }
+  .expiry-badge { font-size: 0.78rem; }
+
+  .expiry-critical { color: var(--red); }
+  .expiry-warn { color: var(--yellow); }
+  .expiry-ok { color: var(--green); }
+
+  .inline-edit { display: none; background: var(--surface2); border-radius: 8px; padding: 1rem; margin-top: 0.5rem; grid-column: 1/-1; }
+  .inline-edit.open { display: grid; grid-template-columns: 1fr 100px 80px 140px; gap: 0.75rem; align-items: end; }
+
+  .empty-state { text-align: center; padding: 4rem 2rem; color: var(--muted); }
+  .empty-state .icon { font-size: 4rem; margin-bottom: 1rem; }
+  .empty-state h3 { font-family: var(--font-display); font-size: 1.4rem; color: var(--text); margin-bottom: 0.5rem; }
+
+  @media (max-width: 768px) {
+    .pantry-layout { grid-template-columns: 1fr; }
+    .add-form { position: static; }
+    .item-row { grid-template-columns: 1fr auto auto; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="page-header">
+    <h1>🧺 Pantry</h1>
+    <p>Track your ingredients, quantities and expiry dates.</p>
+  </div>
+
+  <div class="pantry-layout">
+    <!-- ADD FORM -->
+    <div class="card add-form">
+      <h2>Add Ingredient</h2>
+      <form method="POST" action="/pantry">
+        <div class="form-group">
+          <label>Ingredient Name</label>
+          <input type="text" name="item_name" placeholder="e.g. Tomato" required autocomplete="off" />
+        </div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label>Quantity</label>
+            <input type="number" name="quantity" step="0.1" min="0.1" placeholder="2.5" required />
+          </div>
+          <div class="form-group">
+            <label>Unit</label>
+            <select name="unit">
+              <option>kg</option><option>g</option><option>L</option>
+              <option>ml</option><option>unit</option><option>cup</option>
+              <option>tbsp</option><option>tsp</option><option>pack</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Expiry Date (optional)</label>
+          <input type="date" name="expiry_date" />
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center; margin-top:0.5rem;">
+          ＋ Add to Pantry
+        </button>
+      </form>
+      <hr class="divider">
+      <p style="font-size:0.82rem; color:var(--muted);">
+        💡 If the ingredient already exists, its quantity will be increased automatically.
+      </p>
+    </div>
+
+    <!-- PANTRY TABLE -->
+    <div>
+      <div class="toolbar">
+        <form method="GET" style="display:contents">
+          <div class="search-wrap">
+            <input type="text" name="search" value="{{ search }}" placeholder="Search pantry..." />
+          </div>
+          <div class="sort-tabs">
+            <a href="/pantry?sort=name&search={{ search }}" class="sort-tab {% if sort_by == 'name' %}active{% endif %}">Name</a>
+            <a href="/pantry?sort=expiry&search={{ search }}" class="sort-tab {% if sort_by == 'expiry' %}active{% endif %}">Expiry</a>
+            <a href="/pantry?sort=quantity&search={{ search }}" class="sort-tab {% if sort_by == 'quantity' %}active{% endif %}">Quantity</a>
+          </div>
+          <button type="submit" class="btn btn-ghost btn-sm">Apply</button>
+        </form>
+      </div>
+
+      <div class="card" style="padding:0; overflow:hidden;">
+        {% if items %}
+        <table>
+          <thead>
+            <tr>
+              <th>Ingredient</th>
+              <th>Quantity</th>
+              <th>Expiry</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in items %}
+            {% set days_left = (item.expiry_date - today).days if item.expiry_date else None %}
+            <tr>
+              <td>
+                <div class="item-name">{{ item.item_name }}</div>
+                <div style="font-size:0.78rem; color:var(--muted);">Added {{ item.added_on.strftime('%b %d') }}</div>
+              </td>
+              <td>{{ item.quantity }} {{ item.unit }}</td>
+              <td>
+                {% if item.expiry_date %}
+                  <span class="expiry-badge {% if days_left <= 2 %}expiry-critical{% elif days_left <= 5 %}expiry-warn{% else %}expiry-ok{% endif %}">
+                    {{ item.expiry_date.strftime('%b %d') }}
+                  </span>
+                {% else %}
+                  <span style="color:var(--muted); font-size:0.82rem;">—</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if days_left is not none %}
+                  {% if days_left <= 0 %}
+                    <span class="badge badge-red">Expired</span>
+                  {% elif days_left <= 2 %}
+                    <span class="badge badge-red">{{ days_left }}d left</span>
+                  {% elif days_left <= 5 %}
+                    <span class="badge badge-yellow">{{ days_left }}d left</span>
+                  {% else %}
+                    <span class="badge badge-green">{{ days_left }}d left</span>
+                  {% endif %}
+                {% else %}
+                  <span class="badge" style="background:var(--surface2);color:var(--muted);">No expiry</span>
+                {% endif %}
+              </td>
+              <td>
+                <div style="display:flex; gap:6px;">
+                  <button class="btn btn-ghost btn-sm" onclick="toggleEdit({{ item.id }})">Edit</button>
+                  <form method="POST" action="/delete_item/{{ item.id }}" onsubmit="return confirm('Remove {{ item.item_name }}?')">
+                    <button type="submit" class="btn btn-danger btn-sm">✕</button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+            <tr id="edit-{{ item.id }}" style="display:none;">
+              <td colspan="5" style="padding:0 14px 14px;">
+                <form method="POST" action="/update_item/{{ item.id }}" class="inline-edit open">
+                  <div class="form-group" style="margin:0">
+                    <label>Quantity</label>
+                    <input type="number" name="quantity" step="0.1" value="{{ item.quantity }}" required />
+                  </div>
+                  <div class="form-group" style="margin:0">
+                    <label>Unit</label>
+                    <select name="unit">
+                      {% for u in ['kg','g','L','ml','unit','cup','tbsp','tsp','pack'] %}
+                      <option {% if u == item.unit %}selected{% endif %}>{{ u }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <div class="form-group" style="margin:0">
+                    <label>Expiry Date</label>
+                    <input type="date" name="expiry_date" value="{{ item.expiry_date.isoformat() if item.expiry_date else '' }}" />
+                  </div>
+                  <div style="display:flex; gap:6px;">
+                    <button type="submit" class="btn btn-primary btn-sm">Save</button>
+                    <button type="button" class="btn btn-ghost btn-sm" onclick="toggleEdit({{ item.id }})">Cancel</button>
+                  </div>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state">
+          <div class="icon">🛒</div>
+          <h3>Your pantry is empty</h3>
+          <p>Add your first ingredient using the form on the left.</p>
+        </div>
+        {% endif %}
+      </div>
+
+      {% if items %}
+      <p style="margin-top:1rem; font-size:0.82rem; color:var(--muted);">{{ items|length }} item{{ 's' if items|length != 1 }} in pantry</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function toggleEdit(id) {
+    const row = document.getElementById('edit-' + id);
+    row.style.display = row.style.display === 'none' ? 'table-row' : 'none';
+  }
+</script>
+{% endblock %}

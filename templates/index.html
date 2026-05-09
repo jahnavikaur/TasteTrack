@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% block title %}KitchenMind AI — Smart Kitchen Assistant{% endblock %}
+
+{% block extra_head %}
+<style>
+  .hero {
+    min-height: calc(100vh - 64px);
+    display: flex; flex-direction: column; justify-content: center;
+    padding: 4rem 2rem;
+    position: relative; overflow: hidden;
+  }
+  .hero-bg {
+    position: absolute; inset: 0; z-index: 0;
+    background:
+      radial-gradient(ellipse 60% 50% at 80% 20%, rgba(232,184,109,0.07) 0%, transparent 70%),
+      radial-gradient(ellipse 50% 60% at 10% 80%, rgba(201,125,58,0.06) 0%, transparent 70%);
+  }
+  .hero-content { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; width: 100%; }
+  .hero-eyebrow {
+    font-size: 0.78rem; letter-spacing: 0.15em; text-transform: uppercase;
+    color: var(--accent); font-weight: 600; margin-bottom: 1.2rem;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .hero-eyebrow::before { content: ''; display: block; width: 32px; height: 1px; background: var(--accent); }
+  .hero h1 {
+    font-family: var(--font-display); font-size: clamp(2.8rem, 6vw, 5rem);
+    font-weight: 700; line-height: 1.08; color: var(--text);
+    margin-bottom: 1.5rem;
+  }
+  .hero h1 em { font-style: italic; color: var(--accent); }
+  .hero-sub { color: var(--muted); font-size: 1.1rem; max-width: 520px; margin-bottom: 3rem; line-height: 1.7; }
+  .hero-cta { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 5rem; }
+
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+  .stat-card { position: relative; overflow: hidden; }
+  .stat-card::after {
+    content: attr(data-icon);
+    position: absolute; right: 1rem; bottom: 0.5rem;
+    font-size: 2.5rem; opacity: 0.12;
+  }
+
+  .features { max-width: 1100px; margin: 0 auto; padding: 5rem 2rem; }
+  .features h2 { font-family: var(--font-display); font-size: 2rem; margin-bottom: 0.5rem; }
+  .features-sub { color: var(--muted); margin-bottom: 3rem; }
+  .feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
+  .feature-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 1.75rem;
+    transition: border-color 0.2s, transform 0.2s;
+    text-decoration: none; display: block;
+  }
+  .feature-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .feature-icon { font-size: 2rem; margin-bottom: 1rem; }
+  .feature-card h3 { font-family: var(--font-display); font-size: 1.2rem; margin-bottom: 0.5rem; color: var(--text); }
+  .feature-card p { color: var(--muted); font-size: 0.9rem; line-height: 1.6; }
+  .feature-arrow { color: var(--accent); margin-top: 1rem; font-size: 0.85rem; font-weight: 500; }
+
+  .expiry-alert {
+    background: rgba(232,201,109,0.08); border: 1px solid rgba(232,201,109,0.25);
+    border-radius: var(--radius); padding: 1rem 1.5rem;
+    display: flex; align-items: center; gap: 1rem;
+    margin-top: 1.5rem;
+    color: var(--yellow); font-size: 0.9rem;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-content">
+    <div class="hero-eyebrow">AI-Powered Kitchen Intelligence</div>
+    <h1>Cook smarter,<br>waste <em>nothing.</em></h1>
+    <p class="hero-sub">
+      KitchenMind tracks your pantry, suggests recipes based on what you have, and plans your entire week — automatically deducting ingredients as you cook.
+    </p>
+    <div class="hero-cta">
+      <a href="/pantry" class="btn btn-primary" style="font-size:1rem; padding:12px 28px;">Manage Pantry →</a>
+      <a href="/weekly_plan" class="btn btn-ghost" style="font-size:1rem; padding:12px 28px;">Generate Weekly Plan</a>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card card" data-icon="🧅">
+        <div class="stat-label">Pantry Items</div>
+        <div class="stat-value">{{ pantry_count }}</div>
+        <div class="stat-sub">ingredients tracked</div>
+      </div>
+      <div class="stat-card card" data-icon="⚠️">
+        <div class="stat-label">Expiring Soon</div>
+        <div class="stat-value" style="color: {% if expiring_count > 0 %}var(--yellow){% else %}var(--green){% endif %}">{{ expiring_count }}</div>
+        <div class="stat-sub">items within 5 days</div>
+      </div>
+      <div class="stat-card card" data-icon="📖">
+        <div class="stat-label">Recipe Database</div>
+        <div class="stat-value">500</div>
+        <div class="stat-sub">Indian & fusion recipes</div>
+      </div>
+      <div class="stat-card card" data-icon="📅">
+        <div class="stat-label">Plans Saved</div>
+        <div class="stat-value" style="color: var(--green)">{% if last_plan %}✓{% else %}0{% endif %}</div>
+        <div class="stat-sub">{% if last_plan %}last: {{ last_plan.week_start }}{% else %}no plans yet{% endif %}</div>
+      </div>
+    </div>
+
+    {% if expiring_count > 0 %}
+    <div class="expiry-alert">
+      <span style="font-size:1.4rem">⚡</span>
+      <div>
+        <strong>{{ expiring_count }} item{{ 's' if expiring_count > 1 }} expiring soon!</strong>
+        Check your pantry and get recipe suggestions that use these ingredients first.
+        <a href="/recommend" style="color: var(--accent); text-decoration: none; font-weight:600; margin-left:8px;">Get suggestions →</a>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="features">
+  <h2>Everything your kitchen needs</h2>
+  <p class="features-sub">A complete system designed around reducing waste and eating well.</p>
+  <div class="feature-grid">
+    <a href="/pantry" class="feature-card">
+      <div class="feature-icon">🧺</div>
+      <h3>Smart Pantry</h3>
+      <p>Track ingredients with quantities, units, and expiry dates. Get alerts before items go bad.</p>
+      <div class="feature-arrow">Manage pantry →</div>
+    </a>
+    <a href="/recommend" class="feature-card">
+      <div class="feature-icon">✨</div>
+      <h3>Recipe Suggestions</h3>
+      <p>Our scoring engine matches recipes to your pantry, prioritizing soon-to-expire ingredients.</p>
+      <div class="feature-arrow">Find recipes →</div>
+    </a>
+    <a href="/weekly_plan" class="feature-card">
+      <div class="feature-icon">📅</div>
+      <h3>Weekly Meal Planner</h3>
+      <p>Auto-generate a full 7-day meal plan covering breakfast, lunch, and dinner — then save it to auto-update your pantry.</p>
+      <div class="feature-arrow">Plan my week →</div>
+    </a>
+  </div>
+</div>
+{% endblock %}
