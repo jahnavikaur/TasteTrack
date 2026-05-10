@@ -1,6 +1,28 @@
 import pandas as pd
 from datetime import date
+from synonyms import canonicalize
+from rapidfuzz import process, fuzz
 import os
+
+def fuzzy_canonicalize(name: str, threshold: int = 80) -> str:
+    """
+    First tries exact synonym lookup.
+    Falls back to fuzzy match against all known aliases if no exact hit.
+    """
+    from synonyms import _REVERSE
+
+    exact = canonicalize(name)
+    # If it changed, synonym dict handled it
+    if exact != name.strip().lower():
+        return exact
+
+    # Fuzzy match against all known aliases
+    all_keys = list(_REVERSE.keys())
+    result = process.extractOne(name.lower(), all_keys, scorer=fuzz.WRatio)
+    if result and result[1] >= threshold:
+        return _REVERSE[result[0]]
+
+    return name.strip().lower()
 
 def load_recipes(path=None):
     if path is None:

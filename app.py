@@ -4,6 +4,7 @@ from recommender import recommend_recipes
 from planner import generate_weekly_plan
 from datetime import datetime, date
 import json
+from synonyms import fuzzy_canonicalize
 
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///kitchen.db"
@@ -28,7 +29,8 @@ def index():
 @app.route("/pantry", methods=["GET", "POST"])
 def pantry():
     if request.method == "POST":
-        item_name = request.form["item_name"].strip()
+        from synonyms import fuzzy_canonicalize
+        item_name = fuzzy_canonicalize(request.form["item_name"].strip())
         quantity = float(request.form["quantity"])
         unit = request.form["unit"]
         expiry_date_str = request.form.get("expiry_date")

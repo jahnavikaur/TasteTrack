@@ -2,3 +2,4 @@ flask
 flask-sqlalchemy
 pandas
 python-dateutil
+rapidfuzz
