@@ -3,142 +3,298 @@
 
 {% block extra_head %}
 <style>
+  /* ── Plan controls bar ── */
   .plan-controls {
     display: flex; justify-content: space-between; align-items: center;
     margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;
+    animation: fadeUp 0.4s ease both;
   }
-  .plan-legend { display: flex; gap: 1rem; font-size: 0.82rem; color: var(--muted); align-items: center; }
-  .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .plan-legend {
+    display: flex; gap: 1.25rem; font-size: 0.78rem;
+    color: var(--muted); align-items: center;
+    text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600;
+  }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 
-  .week-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1rem; }
+  /* ── Regenerate button — stamp style ── */
+  .btn-regen {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 9px 20px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    color: var(--muted);
+    font-size: 0.75rem; font-weight: 700;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    text-decoration: none; cursor: pointer;
+    position: relative; overflow: hidden;
+    transition: color 0.2s, border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+  }
+  .btn-regen:hover {
+    color: var(--accent); border-color: var(--accent);
+    transform: translate(-2px, -2px);
+    box-shadow: 3px 3px 0 0 rgba(232,184,109,0.25);
+  }
+  .btn-regen .regen-icon {
+    display: inline-block;
+    transition: transform 0.5s cubic-bezier(0.4,0,0.2,1);
+  }
+  .btn-regen:hover .regen-icon { transform: rotate(180deg); }
+
+  /* ── Week grid ── */
+  .week-grid {
+    display: grid; grid-template-columns: repeat(7, 1fr); gap: 1rem;
+  }
   .day-col { display: flex; flex-direction: column; gap: 0.75rem; }
   .day-header {
     font-family: var(--font-display); font-size: 0.9rem; font-weight: 700;
-    color: var(--text); padding: 0.5rem 0; border-bottom: 2px solid var(--accent);
+    color: var(--text); padding: 0.5rem 0;
+    border-bottom: 2px solid var(--accent);
     margin-bottom: 0.25rem;
   }
-  .day-header small { display: block; font-family: var(--font-body); font-size: 0.7rem; color: var(--muted); font-weight: 400; margin-top: 2px; }
+  .day-header small {
+    display: block; font-family: var(--font-body);
+    font-size: 0.68rem; color: var(--muted); font-weight: 400; margin-top: 2px;
+  }
 
+  /* ── Meal cards ── */
   .meal-card {
     background: var(--surface); border: 1px solid var(--border);
-    border-radius: 10px; padding: 0.9rem; cursor: pointer;
-    transition: border-color 0.2s, transform 0.15s;
-    position: relative;
+    border-radius: 4px; padding: 0.9rem; cursor: pointer;
+    position: relative; overflow: hidden;
+    transition: border-color 0.25s, transform 0.2s, box-shadow 0.2s;
   }
-  .meal-card:hover { border-color: rgba(232,184,109,0.5); transform: translateY(-1px); }
+  .meal-card::before {
+    content: '';
+    position: absolute; left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--stripe-color, var(--accent));
+    transform: scaleY(0); transform-origin: bottom;
+    transition: transform 0.25s cubic-bezier(0.4,0,0.2,1);
+  }
+  .meal-card:hover::before { transform: scaleY(1); }
+  .meal-card:hover {
+    border-color: rgba(232,184,109,0.4);
+    transform: translate(-2px, -2px);
+    box-shadow: 3px 3px 0 0 rgba(232,184,109,0.12);
+  }
   .meal-type-label {
-    font-size: 0.68rem; font-weight: 700; letter-spacing: 0.08em;
-    text-transform: uppercase; margin-bottom: 0.35rem;
+    font-size: 0.66rem; font-weight: 700; letter-spacing: 0.09em;
+    text-transform: uppercase; margin-bottom: 0.4rem;
   }
-  .match-dot.green { background: var(--green); }
-  .match-dot.yellow { background: var(--yellow); }
-  .match-dot.red { background: var(--red); }
   .meal-type-label.breakfast { color: #e8b86d; }
-  .meal-type-label.lunch { color: #7ec98a; }
-  .meal-type-label.dinner { color: #9d8de0; }
-  .meal-name { font-size: 0.82rem; font-weight: 600; line-height: 1.3; color: var(--text); }
-  .meal-sub { font-size: 0.72rem; color: var(--muted); margin-top: 4px; }
-
+  .meal-type-label.lunch     { color: #7ec98a; }
+  .meal-type-label.dinner    { color: #9d8de0; }
+  .meal-name { font-size: 0.81rem; font-weight: 600; line-height: 1.3; color: var(--text); }
+  .meal-sub  { font-size: 0.7rem; color: var(--muted); margin-top: 5px; }
   .match-dot {
     position: absolute; top: 8px; right: 8px;
     width: 6px; height: 6px; border-radius: 50%;
   }
 
-  /* Summary panel */
+  /* ── Summary panel ── */
   .plan-summary {
     background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 1.5rem; margin-top: 2rem;
+    border-radius: 4px; padding: 1.5rem; margin-top: 2rem;
+    animation: fadeUp 0.5s 0.25s ease both;
   }
-  .summary-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; }
+  .summary-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 1.25rem;
+  }
   .summary-header h2 { font-family: var(--font-display); font-size: 1.2rem; }
   .ing-cloud { display: flex; flex-wrap: wrap; gap: 0.4rem; }
   .ing-tag {
-    padding: 4px 12px; border-radius: 20px; font-size: 0.78rem;
+    padding: 4px 12px; border-radius: 2px; font-size: 0.76rem;
     background: var(--surface2); color: var(--muted); border: 1px solid var(--border);
+    transition: color 0.15s, border-color 0.15s;
   }
+  .ing-tag:hover { color: var(--accent); border-color: var(--accent); }
 
-  /* Modal */
-  .modal-overlay { display: none; position: fixed; inset: 0; z-index: 500; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); align-items: center; justify-content: center; padding: 2rem; }
+  /* ── Modal ── */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; z-index: 500;
+    background: rgba(0,0,0,0.72); backdrop-filter: blur(5px);
+    align-items: center; justify-content: center; padding: 2rem;
+  }
   .modal-overlay.open { display: flex; }
-  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; max-width: 520px; width: 100%; max-height: 80vh; overflow-y: auto; padding: 2rem; position: relative; animation: modalIn 0.2s ease; }
-  @keyframes modalIn { from { transform: scale(0.96); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-  .modal-close { position: absolute; top: 1rem; right: 1rem; background: var(--surface2); border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer; color: var(--muted); font-size: 0.9rem; }
+  .modal {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 6px; max-width: 520px; width: 100%;
+    max-height: 80vh; overflow-y: auto; padding: 2rem;
+    position: relative; animation: modalIn 0.22s cubic-bezier(0.4,0,0.2,1);
+  }
+  @keyframes modalIn {
+    from { transform: scale(0.94) translateY(12px); opacity: 0; }
+    to   { transform: scale(1)    translateY(0);    opacity: 1; }
+  }
+  .modal-close {
+    position: absolute; top: 1rem; right: 1rem;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 2px; width: 30px; height: 30px;
+    cursor: pointer; color: var(--muted); font-size: 0.85rem;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .modal-close:hover { color: var(--text); border-color: var(--muted); }
+  .ing-pill {
+    display: inline-block; padding: 4px 12px; border-radius: 2px;
+    background: var(--surface2); border: 1px solid var(--border);
+    font-size: 0.8rem; margin: 3px; color: var(--text);
+    transition: border-color 0.15s;
+  }
+  .ing-pill:hover { border-color: var(--accent); }
 
+  /* ── Save bar ── */
   .save-bar {
-    position: sticky; bottom: 0; background: rgba(15,14,12,0.95);
-    backdrop-filter: blur(12px); border-top: 1px solid var(--border);
-    padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center;
-    margin: 0 -2rem; margin-top: 2rem;
+    position: sticky; bottom: 0;
+    background: rgba(15,14,12,0.96);
+    backdrop-filter: blur(14px);
+    border-top: 1px solid var(--border);
+    padding: 1rem 2rem;
+    display: flex; justify-content: space-between; align-items: center;
+    margin: 0 -2rem; margin-top: 2rem; gap: 1rem;
   }
-  .save-bar p { font-size: 0.88rem; color: var(--muted); }
+  .save-bar p { font-size: 0.85rem; color: var(--muted); }
 
-  @media (max-width: 900px) {
-    .week-grid { grid-template-columns: repeat(3, 1fr); }
+  /* ── Save button — chunky stamp ── */
+  .btn-save {
+    display: inline-flex; align-items: center; gap: 10px;
+    padding: 13px 32px;
+    background: var(--accent); color: #1a1510;
+    border: none; border-radius: 2px;
+    font-family: var(--font-body); font-size: 0.82rem;
+    font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+    cursor: pointer; position: relative; overflow: hidden;
+    box-shadow: 5px 5px 0 0 rgba(232,184,109,0.3);
+    transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
   }
-  @media (max-width: 600px) {
-    .week-grid { grid-template-columns: 1fr 1fr; }
+  .btn-save::after {
+    content: ''; position: absolute; inset: 0;
+    background: rgba(255,255,255,0.1);
+    transform: scaleX(0); transform-origin: left;
+    transition: transform 0.35s cubic-bezier(0.4,0,0.2,1);
   }
+  .btn-save:hover::after { transform: scaleX(1); }
+  .btn-save:hover {
+    transform: translate(-3px, -3px);
+    box-shadow: 8px 8px 0 0 rgba(232,184,109,0.25);
+  }
+  .btn-save:active {
+    transform: translate(1px, 1px);
+    box-shadow: 2px 2px 0 0 rgba(232,184,109,0.2);
+  }
+  .btn-save:disabled {
+    opacity: 0.6; cursor: not-allowed;
+    transform: none; box-shadow: none;
+  }
+  .btn-save.saved {
+    background: var(--green); color: #0f1a12;
+    box-shadow: 5px 5px 0 0 rgba(126,201,138,0.25);
+  }
+
+  /* ── Column stagger animation ── */
+  @keyframes colIn {
+    from { opacity: 0; transform: translateY(22px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (max-width: 900px) { .week-grid { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 600px) { .week-grid { grid-template-columns: 1fr 1fr; } }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="container">
-  <div class="page-header">
+
+  <div class="page-header anim-up">
     <h1>📅 Weekly Meal Plan</h1>
     <p>AI-generated plan based on your pantry. Save it to auto-deduct ingredients.</p>
   </div>
 
   <div class="plan-controls">
     <div class="plan-legend">
-      <span style="display:flex;align-items:center;gap:5px;"><span class="legend-dot" style="background:#e8b86d"></span> Breakfast</span>
-      <span style="display:flex;align-items:center;gap:5px;"><span class="legend-dot" style="background:#7ec98a"></span> Lunch</span>
-      <span style="display:flex;align-items:center;gap:5px;"><span class="legend-dot" style="background:#9d8de0"></span> Dinner</span>
+      <span style="display:flex;align-items:center;gap:6px;">
+        <span class="legend-dot" style="background:#e8b86d"></span> Breakfast
+      </span>
+      <span style="display:flex;align-items:center;gap:6px;">
+        <span class="legend-dot" style="background:#7ec98a"></span> Lunch
+      </span>
+      <span style="display:flex;align-items:center;gap:6px;">
+        <span class="legend-dot" style="background:#9d8de0"></span> Dinner
+      </span>
     </div>
-    <div style="display:flex; gap:0.75rem;">
-      <a href="/weekly_plan" class="btn btn-ghost btn-sm">↻ Regenerate</a>
-    </div>
+    <a href="/weekly_plan" class="btn-regen">
+      <span class="regen-icon">↻</span> Regenerate Plan
+    </a>
   </div>
 
+  {% set days_order = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'] %}
+  {% set day_short  = {'Monday':'Mon','Tuesday':'Tue','Wednesday':'Wed','Thursday':'Thu','Friday':'Fri','Saturday':'Sat','Sunday':'Sun'} %}
+
   <div class="week-grid">
-    {% set days_order = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'] %}
-    {% set day_short = {'Monday':'Mon','Tuesday':'Tue','Wednesday':'Wed','Thursday':'Thu','Friday':'Fri','Saturday':'Sat','Sunday':'Sun'} %}
     {% for day in days_order %}
     {% if day in plan %}
-    <div class="day-col">
+    <div class="day-col" style="animation: colIn 0.45s {{ loop.index0 * 0.06 }}s ease both; ">
       <div class="day-header">
         {{ day_short[day] }}
         <small>{{ day }}</small>
       </div>
+
       {% for meal_type, meal in plan[day].items() %}
-      <div class="meal-card" onclick="openModal('{{ day }}-{{ meal_type }}')">
-        <div class="meal-type-label {{ meal_type|lower }}">{{ meal_type }}</div>
+      {% set stripe = '#e8b86d' if meal_type == 'Breakfast' else ('#7ec98a' if meal_type == 'Lunch' else '#9d8de0') %}
+      <div class="meal-card" style="--stripe-color: {{ stripe }}; "
+           onclick="openModal('{{ day }}-{{ meal_type }}')">
+        <div class="meal-type-label {{ meal_type|lower }}">
+          {% if meal_type == 'Breakfast' %}🌅{% elif meal_type == 'Lunch' %}☀️{% else %}🌙{% endif %}
+          {{ meal_type }}
+        </div>
         <div class="meal-name">{{ meal.name }}</div>
         <div class="meal-sub">
           {{ meal.cuisine }}{% if meal.time %} · {{ meal.time }}m{% endif %}
         </div>
-        <div class="match-dot {% if meal.missing == 0 %}green{% elif meal.matched > meal.missing %}yellow{% else %}red{% endif %}"></div>
+        <div class="match-dot"
+             style="background: {% if meal.missing == 0 %}var(--green){% elif meal.matched > meal.missing %}var(--yellow){% else %}var(--red){% endif %}; ">
+        </div>
       </div>
 
       <!-- Detail Modal -->
-      <div class="modal-overlay" id="modal-{{ day }}-{{ meal_type }}" onclick="if(event.target===this)this.classList.remove('open')">
+      <div class="modal-overlay" id="modal-{{ day }}-{{ meal_type }}"
+           onclick="if(event.target===this)this.classList.remove('open')">
         <div class="modal">
-          <button class="modal-close" onclick="document.getElementById('modal-{{ day }}-{{ meal_type }}').classList.remove('open')">✕</button>
-          <div style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--accent);margin-bottom:0.4rem">{{ day }} · {{ meal_type }}</div>
-          <h2 style="font-family:var(--font-display);font-size:1.4rem;margin-bottom:1rem">{{ meal.name }}</h2>
-          <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1.25rem;">
-            {% if meal.matched is defined %}<span class="badge badge-green">✓ {{ meal.matched }} in pantry</span>{% endif %}
-            {% if meal.missing is defined and meal.missing > 0 %}<span class="badge badge-red">✕ {{ meal.missing }} missing</span>{% endif %}
-            {% if meal.cuisine %}<span class="badge badge-accent">{{ meal.cuisine }}</span>{% endif %}
+          <button class="modal-close"
+            onclick="document.getElementById('modal-{{ day }}-{{ meal_type }}').classList.remove('open')">✕</button>
+          <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.09em;color:var(--accent);margin-bottom:0.4rem;font-weight:700;">
+            {{ day }} · {{ meal_type }}
           </div>
-          <div style="font-size:0.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.5rem;">Ingredients</div>
+          <h2 style="font-family:var(--font-display);font-size:1.4rem;margin-bottom:1rem;line-height:1.25;">
+            {{ meal.name }}
+          </h2>
+          <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1.25rem;">
+            {% if meal.matched is defined %}
+              <span class="badge badge-green">✓ {{ meal.matched }} in pantry</span>
+            {% endif %}
+            {% if meal.missing is defined and meal.missing > 0 %}
+              <span class="badge badge-red">✕ {{ meal.missing }} missing</span>
+            {% endif %}
+            {% if meal.cuisine %}
+              <span class="badge badge-accent">{{ meal.cuisine }}</span>
+            {% endif %}
+            {% if meal.time %}
+              <span class="badge" style="background:var(--surface2);color:var(--muted);">⏱ {{ meal.time }} min</span>
+            {% endif %}
+          </div>
+          <div style="font-size:0.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.6rem;font-weight:700;">
+            Ingredients
+          </div>
           <div>
             {% for ing in meal.ingredients %}
-            <span style="display:inline-block;padding:4px 12px;border-radius:16px;background:var(--surface2);border:1px solid var(--border);font-size:0.8rem;margin:3px;color:var(--text);">{{ ing }}</span>
+            <span class="ing-pill">{{ ing }}</span>
             {% endfor %}
           </div>
         </div>
       </div>
       {% endfor %}
+
     </div>
     {% endif %}
     {% endfor %}
@@ -168,17 +324,17 @@
     </div>
   </div>
 
-  <!-- Hidden plan data for form submission -->
   <form method="POST" action="/save_weekly_plan" id="save-form">
     <input type="hidden" name="plan_data" value="{{ plan | tojson | e }}" />
   </form>
 
   <div class="save-bar">
-    <p>✅ Saving will deduct used ingredients from your pantry automatically.</p>
-    <button onclick="savePlan(event)" class="btn btn-primary" style="font-size:0.95rem; padding:11px 28px;">
-      💾 Save Plan & Update Pantry
+    <p>💡 Saving auto-deducts used ingredients from your pantry.</p>
+    <button id="save-btn" onclick="savePlan(this)" class="btn-save">
+      💾 Save &amp; Update Pantry
     </button>
   </div>
+
 </div>
 {% endblock %}
 
@@ -188,24 +344,23 @@
     document.getElementById('modal-' + id).classList.add('open');
   }
 
-  async function savePlan(event) {
-    const btn = event.currentTarget || event.target;
-    btn.textContent = 'Saving...';
+  async function savePlan(btn) {
     btn.disabled = true;
+    btn.textContent = 'Saving…';
 
     const form = document.getElementById('save-form');
     const data = new FormData(form);
 
     try {
-      const res = await fetch('/save_weekly_plan', { method: 'POST', body: data });
+      const res  = await fetch('/save_weekly_plan', { method: 'POST', body: data });
       const json = await res.json();
       showToast('✅ ' + json.message);
+      btn.classList.add('saved');
       btn.textContent = '✅ Saved!';
-      btn.style.background = 'var(--green)';
     } catch(e) {
-      showToast('Error saving plan.');
-      btn.textContent = '💾 Save Plan & Update Pantry';
+      showToast('❌ Error saving plan. Try again.');
       btn.disabled = false;
+      btn.textContent = '💾 Save & Update Pantry';
     }
   }
 </script>

@@ -7,14 +7,30 @@
     display: flex; gap: 0.5rem; margin-bottom: 2rem; flex-wrap: wrap; align-items: center;
   }
   .filter-btn {
-    padding: 8px 18px; border-radius: 20px; font-size: 0.85rem; font-weight: 500;
-    border: 1px solid var(--border); background: transparent; color: var(--muted);
-    cursor: pointer; text-decoration: none; transition: all 0.2s;
-  }
-  .filter-btn:hover { color: var(--text); border-color: var(--muted); }
-  .filter-btn.active { background: var(--accent); color: #1a1510; border-color: var(--accent); font-weight: 600; }
+  padding: 9px 20px;
+  border-radius: 2px;
+  font-size: 0.78rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase;
+  border: 1px solid var(--border); background: transparent; color: var(--muted);
+  cursor: pointer; text-decoration: none;
+  position: relative; overflow: hidden;
+  transition: color 0.2s, border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+.filter-btn:hover {
+  color: var(--accent); border-color: var(--accent);
+  transform: translate(-2px, -2px);
+  box-shadow: 3px 3px 0 0 rgba(232,184,109,0.2);
+}
+.filter-btn.active {
+  background: var(--accent); color: #1a1510;
+  border-color: var(--accent);
+  box-shadow: 4px 4px 0 0 rgba(232,184,109,0.3);
+  transform: translate(-2px, -2px);
+}
 
-  .recipe-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; }
+  .recipe-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;
+  animation: fadeUp 0.4s ease both;
+}
   .recipe-card {
     background: var(--surface); border: 1px solid var(--border);
     border-radius: var(--radius); overflow: hidden;

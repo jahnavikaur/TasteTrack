@@ -157,7 +157,7 @@
               <td>
                 <div style="display:flex; gap:6px;">
                   <button class="btn btn-ghost btn-sm" data-toggle-edit="{{ item.id }}">Edit</button>
-                  <form method="POST" action="/delete_item/{{ item.id }}" onsubmit="return confirm('Remove {{ item.item_name|escapejs }}?')">
+                  <form method="POST" action="/delete_item/{{ item.id }}" onsubmit="return confirm('Remove {{ item.item_name|tojson }}?')">
                     <button type="submit" class="btn btn-danger btn-sm">✕</button>
                   </form>
                 </div>

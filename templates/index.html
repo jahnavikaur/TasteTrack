@@ -68,7 +68,18 @@
   .feature-icon { font-size: 2rem; margin-bottom: 1rem; }
   .feature-card h3 { font-family: var(--font-display); font-size: 1.2rem; margin-bottom: 0.5rem; color: var(--text); }
   .feature-card p { color: var(--muted); font-size: 0.9rem; line-height: 1.6; }
-  .feature-arrow { color: var(--accent); margin-top: 1rem; font-size: 0.85rem; font-weight: 500; }
+  .feature-arrow {
+  color: var(--accent); margin-top: 1rem; font-size: 0.85rem; font-weight: 600;
+  display: inline-flex; align-items: center; gap: 6px;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s, gap 0.2s;
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+.feature-card:hover .feature-arrow { border-color: var(--accent); gap: 10px; }
+.feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
+.feature-card { animation: fadeUp 0.5s ease both; }
+.feature-card:nth-child(2) { animation-delay: 0.1s; }
+.feature-card:nth-child(3) { animation-delay: 0.2s; }
 
   .expiry-alert {
     background: rgba(232,201,109,0.08); border: 1px solid rgba(232,201,109,0.25);
@@ -84,19 +95,23 @@
 <div class="hero">
   <div class="hero-bg"></div>
   <div class="hero-content">
-    <div class="hero-eyebrow">AI-Powered Kitchen Intelligence</div>
-    <h1>Cook smarter,<br>waste <em>nothing.</em></h1>
-    <p class="hero-sub">
+   <div class="hero-eyebrow anim-up">AI-Powered Kitchen Intelligence</div>
+<h1 class="anim-up" style="animation-delay:0.05s">Cook smarter,<br>waste <em>nothing.</em></h1>
+<p class="hero-sub anim-up2">
       KitchenMind tracks your pantry, suggests recipes based on what you have, and plans your entire week — automatically deducting ingredients as you cook.
     </p>
-    <div class="hero-cta">
-      <a href="/pantry" class="btn btn-primary" style="font-size:1rem; padding:12px 28px;">Manage Pantry →</a>
-      <a href="/weekly_plan" class="btn btn-ghost" style="font-size:1rem; padding:12px 28px;">Generate Weekly Plan</a>
-    </div>
+   <div class="hero-cta anim-up2">
+  <a href="/pantry" class="btn btn-primary" style="font-size:0.95rem; padding:14px 32px;">
+    🧺 Manage Pantry
+  </a>
+  <a href="/weekly_plan" class="btn btn-ghost" style="font-size:0.95rem; padding:14px 32px;">
+    📅 Plan My Week
+  </a>
+</div>
  <div style="display:flex;align-items:center;gap:1.5rem;margin-bottom:1rem;opacity:0.35;font-size:1.8rem;">
   🫙 🧂 🍯 🫒 🌿 🍴 🔪 🥄 🫕
 </div>
-    <div class="stats-row">
+  <div class="stats-row anim-up3">
       <div class="stat-card card" data-icon="🧅">
         <div class="stat-label">Pantry Items</div>
         <div class="stat-value">{{ pantry_count }}</div>
