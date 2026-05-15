@@ -4,7 +4,7 @@ from recommender import recommend_recipes
 from planner import generate_weekly_plan
 from datetime import datetime, date
 import json
-from synonyms import fuzzy_canonicalize
+from synonyms import canonicalize
 from shopping import generate_shopping_list
 
 app = Flask(__name__)

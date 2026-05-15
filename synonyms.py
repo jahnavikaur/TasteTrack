@@ -7,6 +7,7 @@ SYNONYMS = {
     "maida": ["all purpose flour", "refined flour", "white flour"],
     "semolina": ["suji", "sooji", "rava", "rawa"],
     "cornflour": ["corn starch", "makki atta", "corn flour"],
+"makki atta":           ["corn flour", "maize flour", "makka atta", "makki ka atta"],
 
     # Lentils & legumes
     "moong dal": ["mung dal", "green gram dal", "moong daal", "mung lentil"],
@@ -16,6 +17,7 @@ SYNONYMS = {
     "toor dal": ["arhar dal", "pigeon pea dal", "toovar dal", "tuvar dal"],
     "rajma": ["kidney beans", "red kidney beans"],
     "chana": ["chickpea", "chole", "garbanzo", "kabuli chana"],
+    "whole urad dal":       ["whole black gram", "sabut urad", "kali dal", "maa ki dal"],
 
     # Vegetables
     "potato": ["aloo", "alu", "batata"],
@@ -37,6 +39,7 @@ SYNONYMS = {
     "coriander leaves": ["dhania", "cilantro", "hara dhania", "dhaniya"],
     "mint leaves": ["pudina", "peppermint leaves"],
     "curry leaves": ["kadi patta", "meetha neem"],
+    "mustard leaves":       ["sarson", "sarson ke patte", "mustard greens"],
 
     # Spices
     "cumin": ["jeera", "zeera", "jira"],
@@ -68,6 +71,7 @@ SYNONYMS = {
     "basmati rice": ["basmati", "basmati chawal", "long grain rice"],
     "poha": ["flattened rice", "beaten rice", "aval"],
     "oats": ["jaie", "oat"],
+    
 
     # Oils & Fats
     "oil": ["tel", "cooking oil", "vegetable oil", "refined oil"],
@@ -84,8 +88,24 @@ SYNONYMS = {
     "coconut milk": ["nariyal ka doodh", "coconut cream"],
     "tamarind": ["imli", "imlee"],
     "jaggery": ["gur", "gud", "gurr"],
-}
 
+# Add inside SYNONYMS dict:
+# non veg :
+"minced meat":          ["keema", "qeema", "mince"],
+"khoya":                ["mawa", "evaporated milk solids", "khoa"],
+"maida":                ["all purpose flour", "refined flour", "white flour"],
+"pomegranate seeds":    ["anardana", "anar dana", "dried pomegranate"],
+"amchur":               ["dry mango powder", "amchoor", "aamchur"],
+"pickle masala":        ["achari masala", "pickling spices"],
+"tamarind chutney":     ["imli chutney", "meethi chutney"],
+"green chutney":        ["pudina chutney", "hari chutney", "coriander chutney"],
+"saffron":              ["kesar", "zafran"],
+"rose petals":          ["gulab patti", "dried rose petals"],
+"chicken":              ["murgh", "murg", "poultry"],
+"mutton":               ["gosht", "goat meat", "lamb"],
+"mushroom":             ["khumb", "dhingri"],
+"ajwain":               ["carom seeds", "bishop weed", "ajvain"],
+}
 # Build reverse lookup: every alias → canonical name
 _REVERSE = {}
 for canonical, aliases in SYNONYMS.items():
