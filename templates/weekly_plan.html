@@ -328,13 +328,21 @@
     <input type="hidden" name="plan_data" value="{{ plan | tojson | e }}" />
   </form>
 
-  <div class="save-bar">
-    <p>💡 Saving auto-deducts used ingredients from your pantry.</p>
+ <div class="save-bar">
+  <p>💡 Saving auto-deducts used ingredients from your pantry.</p>
+  <div style="display:flex; gap:0.75rem; align-items:center;">
+    <button onclick="document.getElementById('shop-form').submit()" 
+            class="btn-regen" style="padding:13px 24px;">
+      🛒 Shopping List
+    </button>
     <button id="save-btn" onclick="savePlan(this)" class="btn-save">
       💾 Save &amp; Update Pantry
     </button>
   </div>
-
+</div>
+<form method="POST" action="/shopping_list" id="shop-form">
+  <input type="hidden" name="plan_data" value="{{ plan | tojson | e }}" />
+</form>
 </div>
 {% endblock %}
 

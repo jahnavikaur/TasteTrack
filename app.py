@@ -5,6 +5,7 @@ from planner import generate_weekly_plan
 from datetime import datetime, date
 import json
 from synonyms import fuzzy_canonicalize
+from shopping import generate_shopping_list
 
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///kitchen.db"
@@ -137,3 +138,20 @@ def plan_history():
 
 if __name__ == "__main__":
     app.run(debug=True)
+@app.route("/shopping_list", methods=["POST"])
+def shopping_list():
+    plan_json = request.form.get("plan_data")
+    if not plan_json:
+        return redirect(url_for("weekly_plan"))
+    
+    plan = json.loads(plan_json)
+    pantry_items = PantryItem.query.all()
+    pantry_list = [{"item_name": p.item_name} for p in pantry_items]
+    
+    shopping = generate_shopping_list(plan, pantry_list)
+    total = sum(len(items) for items in shopping.values())
+    
+    return render_template("shopping_list.html", 
+                           shopping=shopping, 
+                           total=total,
+                           plan_json=plan_json)
