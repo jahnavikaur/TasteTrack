@@ -16,6 +16,10 @@ CATEGORIES = {
                "asafoetida", "carom seeds", "fennel seeds", "salt", "sugar"],
     "Oils & Fats": ["oil", "mustard oil", "ghee", "butter"],
     "Others": [],
+    # Add to existing CATEGORIES:
+"Meat & Poultry": ["chicken", "mutton", "minced meat", "keema", "egg"],
+"Dry Fruits & Nuts": ["cashew", "almond", "raisin", "peanut", "walnut", "pistachio"],
+"Sweeteners": ["sugar", "jaggery", "honey", "khoya", "mawa"],
 }
 
 def categorize(ingredient: str) -> str:
