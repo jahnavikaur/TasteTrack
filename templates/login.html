@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Login — KitchenMind AI{% endblock %}
+
+{% block extra_head %}
+<style>
+  .auth-wrap {
+    min-height: calc(100vh - 64px);
+    display: flex; align-items: center; justify-content: center;
+    padding: 2rem;
+  }
+  .auth-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 2.5rem;
+    width: 100%; max-width: 420px;
+    animation: fadeUp 0.4s ease both;
+  }
+  .auth-logo { text-align: center; margin-bottom: 2rem; }
+  .auth-logo .icon {
+    font-size: 3rem; display: block; margin-bottom: 0.5rem;
+  }
+  .auth-logo h1 {
+    font-family: var(--font-display); font-size: 1.8rem; color: var(--accent);
+  }
+  .auth-logo p { color: var(--muted); font-size: 0.88rem; margin-top: 0.25rem; }
+
+  .auth-card h2 {
+    font-family: var(--font-display); font-size: 1.3rem;
+    margin-bottom: 1.5rem; color: var(--text);
+  }
+  .auth-footer {
+    text-align: center; margin-top: 1.5rem;
+    font-size: 0.85rem; color: var(--muted);
+  }
+  .auth-footer a { color: var(--accent); text-decoration: none; font-weight: 600; }
+  .auth-footer a:hover { text-decoration: underline; }
+
+  .flash-msg {
+    padding: 0.75rem 1rem; border-radius: 4px;
+    margin-bottom: 1rem; font-size: 0.85rem;
+  }
+  .flash-error   { background: rgba(224,112,112,0.1); border: 1px solid rgba(224,112,112,0.3); color: var(--red); }
+  .flash-success { background: rgba(126,201,138,0.1); border: 1px solid rgba(126,201,138,0.3); color: var(--green); }
+
+  .remember-row {
+    display: flex; align-items: center; gap: 8px;
+    margin: 0.75rem 0 1.25rem;
+    font-size: 0.85rem; color: var(--muted);
+  }
+  .remember-row input[type=checkbox] {
+    width: 16px; height: 16px; accent-color: var(--accent);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-wrap">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <span class="icon">🍳</span>
+      <h1>KitchenMind AI</h1>
+      <p>Your personal smart kitchen assistant</p>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        <div class="flash-msg flash-{{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endwith %}
+
+    <h2>Sign in to your kitchen</h2>
+
+    <form method="POST" action="/login">
+      <div class="form-group">
+        <label>Username</label>
+        <input type="text" name="username" placeholder="your username"
+               required autocomplete="username" />
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" name="password" placeholder="••••••••"
+               required autocomplete="current-password" />
+      </div>
+      <div class="remember-row">
+        <input type="checkbox" name="remember" id="remember" />
+        <label for="remember">Remember me for 30 days</label>
+      </div>
+      <button type="submit" class="btn btn-primary"
+              style="width:100%;justify-content:center;padding:13px;">
+        Sign In →
+      </button>
+    </form>
+
+    <div class="auth-footer">
+      Don't have an account?
+      <a href="/register">Create one free</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

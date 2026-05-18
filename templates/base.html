@@ -66,9 +66,31 @@
       font-weight: 500;
       transition: all 0.2s;
     }
-    .nav-links a:hover, .nav-links a.active {
-      color: var(--accent);
-      background: var(--accent-pale);
+    <nav>
+  <a href="/" class="nav-logo">
+    <span style="background:var(--accent);color:#1a1510;width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;">🍳</span>
+    KitchenMind AI
+  </a>
+  <div class="nav-links">
+    {% if current_user.is_authenticated %}
+      <a href="/"            class="{% if request.endpoint == 'index' %}active{% endif %}">Home</a>
+      <a href="/pantry"      class="{% if request.endpoint == 'pantry' %}active{% endif %}">Pantry</a>
+      <a href="/recommend"   class="{% if request.endpoint == 'recommend' %}active{% endif %}">Recipes</a>
+      <a href="/weekly_plan" class="{% if request.endpoint == 'weekly_plan' %}active{% endif %}">Weekly Plan</a>
+      <a href="/plan_history"class="{% if request.endpoint == 'plan_history' %}active{% endif %}">History</a>
+      <a href="/profile"     class="{% if request.endpoint == 'profile' %}active{% endif %}"
+         style="display:flex;align-items:center;gap:6px;">
+        <span style="background:var(--accent);color:#1a1510;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;">
+          {{ current_user.username[0].upper() }}
+        </span>
+        {{ current_user.username }}
+      </a>
+    {% else %}
+      <a href="/login"    class="{% if request.endpoint == 'login' %}active{% endif %}">Login</a>
+      <a href="/register" class="btn btn-primary btn-sm">Sign Up</a>
+    {% endif %}
+  </div>
+</nav>
     }
 
     /* LAYOUT */

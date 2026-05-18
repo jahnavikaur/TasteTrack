@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Profile — KitchenMind AI{% endblock %}
+
+{% block extra_head %}
+<style>
+  .profile-grid { display:grid; grid-template-columns:280px 1fr; gap:2rem; align-items:start; }
+  .avatar {
+    width:80px; height:80px; border-radius:50%;
+    background:var(--accent-pale); border:2px solid var(--accent);
+    display:flex; align-items:center; justify-content:center;
+    font-size:2.2rem; margin-bottom:1rem;
+  }
+  .profile-name { font-family:var(--font-display); font-size:1.5rem; }
+  .profile-email { color:var(--muted); font-size:0.88rem; margin-top:4px; }
+  .profile-since { color:var(--muted); font-size:0.8rem; margin-top:8px; }
+  .stat-row { display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-top:1.5rem; }
+  .danger-zone { border-color:rgba(224,112,112,0.3) !important; }
+  .danger-zone h3 { color:var(--red); font-size:0.9rem; margin-bottom:0.5rem; }
+  @media(max-width:768px){ .profile-grid{ grid-template-columns:1fr; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="page-header anim-up">
+    <h1>👤 My Profile</h1>
+    <p>Manage your account and kitchen preferences.</p>
+  </div>
+
+  <div class="profile-grid">
+    <!-- LEFT -->
+    <div>
+      <div class="card" style="text-align:center; padding:2rem;">
+        <div class="avatar" style="margin:0 auto 1rem;">
+          {{ current_user.username[0].upper() }}
+        </div>
+        <div class="profile-name">{{ current_user.username }}</div>
+        <div class="profile-email">{{ current_user.email }}</div>
+        <div class="profile-since">
+          Member since {{ current_user.created_on.strftime('%B %Y') }}
+        </div>
+        <hr class="divider">
+        <a href="/logout" class="btn btn-ghost btn-sm"
+           style="width:100%;justify-content:center;">Sign Out</a>
+      </div>
+    </div>
+
+    <!-- RIGHT -->
+    <div>
+      <div class="stat-row">
+        <div class="stat-card">
+          <div class="stat-label">Pantry Items</div>
+          <div class="stat-value">{{ pantry_count }}</div>
+          <div class="stat-sub">ingredients tracked</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Weekly Plans</div>
+          <div class="stat-value">{{ plan_count }}</div>
+          <div class="stat-sub">plans saved</div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:1.5rem;">
+        <h2 style="font-family:var(--font-display);font-size:1.1rem;margin-bottom:1.25rem;">
+          Quick Links
+        </h2>
+        <div style="display:flex;flex-direction:column;gap:0.5rem;">
+          <a href="/pantry"      class="btn btn-ghost" style="justify-content:flex-start;">🧺 My Pantry</a>
+          <a href="/recommend"   class="btn btn-ghost" style="justify-content:flex-start;">✨ Recipe Suggestions</a>
+          <a href="/weekly_plan" class="btn btn-ghost" style="justify-content:flex-start;">📅 Weekly Planner</a>
+          <a href="/plan_history"class="btn btn-ghost" style="justify-content:flex-start;">📋 Plan History</a>
+        </div>
+      </div>
+
+      <div class="card danger-zone" style="margin-top:1.5rem;">
+        <h3>⚠ Danger Zone</h3>
+        <p style="font-size:0.85rem;color:var(--muted);margin-bottom:1rem;">
+          Clearing your pantry will permanently delete all your ingredients.
+        </p>
+        <form method="POST" action="/clear_pantry"
+              onsubmit="return confirm('Delete ALL pantry items? This cannot be undone.')">
+          <button type="submit" class="btn btn-danger btn-sm">🗑 Clear Entire Pantry</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
