@@ -2,13 +2,17 @@ import os
 from flask import Flask, render_template, request, redirect, url_for, jsonify, flash
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from flask_bcrypt import Bcrypt
-from models import db, User, PantryItem, WeeklyPlan
+from models import RecipePreference, db, User, PantryItem, WeeklyPlan
 from recommender import recommend_recipes, load_recipes
 from planner import generate_weekly_plan
 from shopping import generate_shopping_list
 from datetime import datetime, date
 import json
 from chatbot import chat_with_ai
+from preferences import get_preference_profile, get_top_preferences
+from models import db, User, PantryItem, WeeklyPlan, RecipePreference
+import json
+from collections import Counter
 
 app = Flask(__name__)
 
@@ -211,9 +215,16 @@ def update_item(item_id):
 @login_required
 def recommend():
     meal_type = request.args.get('meal_type', '')
-    recipes   = recommend_recipes(get_pantry_list(), top_n=20,
-                                  meal_type=meal_type if meal_type else None)
-    return render_template('recommend.html', recipes=recipes, meal_type=meal_type)
+    recipes   = recommend_recipes(
+        get_pantry_list(), top_n=20,
+        meal_type=meal_type if meal_type else None,
+        user_id=current_user.id
+    )
+    # Get user's liked/disliked recipe IDs for UI
+    liked    = {p.recipe_id for p in current_user.preferences if p.action == 'like'}
+    disliked = {p.recipe_id for p in current_user.preferences if p.action == 'dislike'}
+    return render_template('recommend.html', recipes=recipes,
+                           meal_type=meal_type, liked=liked, disliked=disliked)
 
 
 # ── Weekly Plan ───────────────────────────────────────────────────────────────
@@ -320,6 +331,7 @@ def chat_send():
     reply = chat_with_ai(user_message, pantry_list, history)
     return jsonify({'reply': reply})
 
+
 @app.route('/pantry/add_from_shopping', methods=['POST'])
 @login_required
 def add_from_shopping():
@@ -349,6 +361,123 @@ def add_from_shopping():
 
     db.session.commit()
     return jsonify({'status': 'ok', 'message': f'{canonical} added to pantry!'})
+
+#---------------- like/dislike route:------------------
+@app.route('/recipe/preference', methods=['POST'])
+@login_required
+def recipe_preference():
+    data       = request.get_json()
+    recipe_id  = int(data.get('recipe_id'))
+    action     = data.get('action')   # 'like' or 'dislike'
+    name       = data.get('name', '')
+    cuisine    = data.get('cuisine', '')
+    meal_type  = data.get('meal_type', '')
+    ingredients= data.get('ingredients', [])
+
+    if action not in ('like', 'dislike'):
+        return jsonify({'status': 'error'}), 400
+
+    # Remove existing preference for this recipe first
+    existing = RecipePreference.query.filter_by(
+        user_id=current_user.id, recipe_id=recipe_id
+    ).first()
+    if existing:
+        if existing.action == action:
+            # Toggle off — remove it
+            db.session.delete(existing)
+            db.session.commit()
+            return jsonify({'status': 'removed', 'action': action})
+        else:
+            existing.action     = action
+            existing.created_on = datetime.utcnow()
+            db.session.commit()
+            return jsonify({'status': 'updated', 'action': action})
+
+    # New preference
+    pref = RecipePreference(
+        user_id    = current_user.id,
+        recipe_id  = recipe_id,
+        recipe_name= name,
+        action     = action,
+        cuisine    = cuisine,
+        meal_type  = meal_type,
+        ingredients= json.dumps(ingredients)
+    )
+    db.session.add(pref)
+    db.session.commit()
+    return jsonify({'status': 'saved', 'action': action})
+
+#---------------- dashboard route:------------------
+
+@app.route('/dashboard')
+@login_required
+def dashboard():
+    from recommender import recommend_recipes
+    today = date.today()
+
+    # Pantry stats
+    pantry_items   = PantryItem.query.filter_by(user_id=current_user.id).all()
+    pantry_count   = len(pantry_items)
+
+    # Expiring items
+    expiring = sorted(
+        [p for p in pantry_items if p.expiry_date and (p.expiry_date - today).days <= 7],
+        key=lambda x: x.expiry_date
+    )
+
+    # Most used ingredient (from all weekly plans)
+    all_plans = WeeklyPlan.query.filter_by(user_id=current_user.id).all()
+    ing_counter = Counter()
+    for plan in all_plans:
+        plan_data = json.loads(plan.plan_data)
+        for day in plan_data:
+            for meal in plan_data[day].values():
+                for ing in meal.get('ingredients', []):
+                    ing_counter[ing.lower()] += 1
+    most_used = ing_counter.most_common(5)
+
+    # Recipe of the day — top recommended
+    pantry_list = get_pantry_list()
+    top_recipes = recommend_recipes(pantry_list, top_n=5, user_id=current_user.id)
+    recipe_of_day = top_recipes[0] if top_recipes else None
+
+    # Latest weekly plan summary
+    last_plan = WeeklyPlan.query.filter_by(user_id=current_user.id)\
+                                .order_by(WeeklyPlan.created_on.desc()).first()
+    plan_summary = None
+    if last_plan:
+        plan_data = json.loads(last_plan.plan_data)
+        plan_summary = {
+            "week_start": last_plan.week_start,
+            "days":       list(plan_data.keys()),
+            "total_meals":sum(len(v) for v in plan_data.values()),
+            "preview":    {day: list(meals.keys()) for day, meals in plan_data.items()}
+        }
+
+    # Preference profile
+    prefs = get_top_preferences(current_user.id)
+
+    # Recent activity
+    recent_likes = RecipePreference.query.filter_by(
+        user_id=current_user.id, action='like'
+    ).order_by(RecipePreference.created_on.desc()).limit(5).all()
+
+    recent_dislikes = RecipePreference.query.filter_by(
+        user_id=current_user.id, action='dislike'
+    ).order_by(RecipePreference.created_on.desc()).limit(3).all()
+
+    return render_template('dashboard.html',
+        pantry_count   = pantry_count,
+        expiring       = expiring,
+        most_used      = most_used,
+        recipe_of_day  = recipe_of_day,
+        plan_summary   = plan_summary,
+        prefs          = prefs,
+        recent_likes   = recent_likes,
+        recent_dislikes= recent_dislikes,
+        today          = today,
+        all_plans_count= len(all_plans),
+    )
 
 if __name__ == '__main__':
     app.run(debug=True)

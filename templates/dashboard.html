@@ -1,0 +1,350 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — KitchenMind AI{% endblock %}
+
+{% block extra_head %}
+<style>
+  .dash-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 1.25rem;
+    position: relative; overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+    animation: fadeUp 0.4s ease both;
+  }
+  .stat-card:hover { transform: translate(-2px,-2px); box-shadow: 4px 4px 0 0 rgba(232,184,109,0.15); }
+  .stat-card::after {
+    content: attr(data-icon); position: absolute;
+    right: 1rem; bottom: 0.25rem;
+    font-size: 2.8rem; opacity: 0.08;
+  }
+  .stat-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 700; margin-bottom: 0.4rem; }
+  .stat-value { font-family: var(--font-display); font-size: 2.4rem; font-weight: 700; color: var(--accent); line-height: 1; }
+  .stat-sub   { font-size: 0.78rem; color: var(--muted); margin-top: 0.3rem; }
+
+  .section-title {
+    font-family: var(--font-display); font-size: 1.2rem;
+    margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;
+  }
+  .section-title span { font-size: 0.72rem; color: var(--muted); font-family: var(--font-body); font-weight: 400; }
+
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .full-width { grid-column: 1 / -1; }
+
+  .panel {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 1.5rem;
+    animation: fadeUp 0.45s ease both;
+  }
+
+  /* Expiry list */
+  .expiry-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0.6rem 0; border-bottom: 1px solid rgba(46,44,41,0.4);
+    font-size: 0.88rem;
+  }
+  .expiry-item:last-child { border-bottom: none; }
+  .expiry-name { font-weight: 500; color: var(--text); }
+  .expiry-days-critical { color: var(--red); font-weight: 700; font-size: 0.8rem; }
+  .expiry-days-warn     { color: var(--yellow); font-weight: 600; font-size: 0.8rem; }
+  .expiry-days-ok       { color: var(--green); font-size: 0.8rem; }
+
+  /* Recipe of the day */
+  .rotd {
+    background: linear-gradient(135deg, rgba(232,184,109,0.08), rgba(201,125,58,0.05));
+    border: 1px solid rgba(232,184,109,0.25);
+    border-radius: 8px; padding: 1.5rem;
+    animation: fadeUp 0.5s ease both;
+  }
+  .rotd-label {
+    font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--accent); font-weight: 700; margin-bottom: 0.5rem;
+  }
+  .rotd-name { font-family: var(--font-display); font-size: 1.5rem; margin-bottom: 0.75rem; }
+  .rotd-meta { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+  .rotd-ings { font-size: 0.82rem; color: var(--muted); line-height: 1.7; }
+
+  /* Preference panel */
+  .pref-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0.5rem 0; border-bottom: 1px solid rgba(46,44,41,0.4);
+    font-size: 0.85rem;
+  }
+  .pref-row:last-child { border-bottom: none; }
+  .pref-bar-wrap { flex: 1; margin: 0 1rem; height: 4px; background: var(--surface2); border-radius: 2px; overflow: hidden; }
+  .pref-bar { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.8s ease; }
+
+  /* Weekly plan summary */
+  .plan-days { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+  .plan-day-chip {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 4px; padding: 0.5rem 0.75rem; font-size: 0.78rem;
+  }
+  .plan-day-chip strong { display: block; color: var(--accent); font-size: 0.7rem; text-transform: uppercase; margin-bottom: 3px; }
+
+  /* Like/dislike history */
+  .pref-recipe-item {
+    display: flex; align-items: center; gap: 0.75rem;
+    padding: 0.5rem 0; border-bottom: 1px solid rgba(46,44,41,0.4);
+    font-size: 0.85rem;
+  }
+  .pref-recipe-item:last-child { border-bottom: none; }
+  .pref-icon { font-size: 1rem; flex-shrink: 0; }
+
+  /* Most used */
+  .used-item {
+    display: flex; align-items: center; gap: 0.75rem;
+    padding: 0.4rem 0;
+  }
+  .used-name { font-size: 0.85rem; flex: 1; }
+  .used-count { font-size: 0.75rem; color: var(--muted); }
+  .used-bar-wrap { width: 80px; height: 4px; background: var(--surface2); border-radius: 2px; }
+  .used-bar { height: 100%; background: var(--accent); border-radius: 2px; }
+
+  .empty-panel { text-align: center; padding: 2rem; color: var(--muted); font-size: 0.88rem; }
+  .empty-panel .ei { font-size: 2rem; margin-bottom: 0.5rem; }
+
+  @media(max-width:900px) {
+    .dash-grid  { grid-template-columns: repeat(2,1fr); }
+    .main-grid  { grid-template-columns: 1fr; }
+  }
+  @media(max-width:500px) {
+    .dash-grid  { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+
+  <div class="page-header anim-up" style="margin-bottom:1.5rem;">
+    <h1>📊 Dashboard</h1>
+    <p>Welcome back, {{ current_user.username }}! Here's your kitchen at a glance.</p>
+  </div>
+
+  <!-- ── TOP STATS ── -->
+  <div class="dash-grid">
+    <div class="stat-card" data-icon="🧅" style="animation-delay:0s">
+      <div class="stat-label">Pantry Items</div>
+      <div class="stat-value">{{ pantry_count }}</div>
+      <div class="stat-sub">ingredients tracked</div>
+    </div>
+    <div class="stat-card" data-icon="⚡" style="animation-delay:0.06s">
+      <div class="stat-label">Expiring Soon</div>
+      <div class="stat-value" style="color:{% if expiring|length > 0 %}var(--yellow){% else %}var(--green){% endif %}">
+        {{ expiring|length }}
+      </div>
+      <div class="stat-sub">within 7 days</div>
+    </div>
+    <div class="stat-card" data-icon="📅" style="animation-delay:0.12s">
+      <div class="stat-label">Plans Saved</div>
+      <div class="stat-value">{{ all_plans_count }}</div>
+      <div class="stat-sub">weekly meal plans</div>
+    </div>
+    <div class="stat-card" data-icon="❤️" style="animation-delay:0.18s">
+      <div class="stat-label">Liked Recipes</div>
+      <div class="stat-value" style="color:var(--red)">{{ prefs.total_likes }}</div>
+      <div class="stat-sub">{{ prefs.total_dislikes }} disliked</div>
+    </div>
+  </div>
+
+  <!-- ── RECIPE OF THE DAY ── -->
+  {% if recipe_of_day %}
+  <div class="rotd" style="margin-bottom:1.5rem;">
+    <div class="rotd-label">⭐ Recommended For You Today</div>
+    <div class="rotd-name">{{ recipe_of_day.name }}</div>
+    <div class="rotd-meta">
+      <span class="badge badge-accent">{{ recipe_of_day.cuisine }}</span>
+      <span class="badge badge-green">✓ {{ recipe_of_day.matched }} ingredients matched</span>
+      <span class="badge" style="background:var(--surface2);color:var(--muted);">⏱ {{ recipe_of_day.time }} min</span>
+      {% if recipe_of_day.missing == 0 %}
+      <span class="badge badge-green">Ready to cook!</span>
+      {% endif %}
+    </div>
+    <div class="rotd-ings">
+      <strong style="color:var(--text);">Ingredients:</strong>
+      {{ recipe_of_day.ingredients | join(', ') }}
+    </div>
+    <div style="margin-top:1rem; display:flex; gap:0.75rem;">
+      <a href="/recommend" class="btn btn-primary btn-sm">See All Recipes →</a>
+      <a href="/chat"      class="btn btn-ghost btn-sm">🤖 Ask AI for this recipe</a>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ── MAIN 2-COL GRID ── -->
+  <div class="main-grid">
+
+    <!-- Expiring Soon -->
+    <div class="panel">
+      <div class="section-title">
+        ⚡ Expiring Soon
+        <span>use these first</span>
+      </div>
+      {% if expiring %}
+        {% for item in expiring %}
+        {% set days = (item.expiry_date - today).days %}
+        <div class="expiry-item">
+          <span class="expiry-name">{{ item.item_name }}</span>
+          <div style="display:flex;align-items:center;gap:0.75rem;">
+            <span style="font-size:0.8rem;color:var(--muted);">{{ item.quantity }} {{ item.unit }}</span>
+            <span class="{% if days <= 2 %}expiry-days-critical{% elif days <= 4 %}expiry-days-warn{% else %}expiry-days-ok{% endif %}">
+              {% if days <= 0 %}Expired!{% elif days == 1 %}Tomorrow!{% else %}{{ days }}d left{% endif %}
+            </span>
+          </div>
+        </div>
+        {% endfor %}
+        <a href="/recommend" class="btn btn-ghost btn-sm" style="margin-top:1rem;">
+          Get recipes using these →
+        </a>
+      {% else %}
+        <div class="empty-panel">
+          <div class="ei">✅</div>
+          All your items are fresh!
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Most Used Ingredients -->
+    <div class="panel">
+      <div class="section-title">
+        🔥 Most Used Ingredients
+        <span>across all plans</span>
+      </div>
+      {% if most_used %}
+        {% set max_count = most_used[0][1] %}
+        {% for name, count in most_used %}
+        <div class="used-item">
+          <span class="used-name">{{ name }}</span>
+          <div class="used-bar-wrap">
+            <div class="used-bar" style="width:{{ (count / max_count * 100)|int }}%"></div>
+          </div>
+          <span class="used-count">{{ count }}×</span>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="empty-panel">
+          <div class="ei">📅</div>
+          Save a weekly plan to see usage stats.
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Family Preferences -->
+    <div class="panel">
+      <div class="section-title">
+        👨‍👩‍👧 Family Taste Profile
+        <span>learned from your likes</span>
+      </div>
+      {% if prefs.total_likes > 0 %}
+        {% if prefs.top_cuisine %}
+        <div class="pref-row">
+          <span style="color:var(--muted);font-size:0.78rem;">Fav Cuisine</span>
+          <span class="badge badge-accent">{{ prefs.top_cuisine }}</span>
+        </div>
+        {% endif %}
+        {% if prefs.top_meal_type %}
+        <div class="pref-row">
+          <span style="color:var(--muted);font-size:0.78rem;">Fav Meal Time</span>
+          <span class="badge badge-green">{{ prefs.top_meal_type }}</span>
+        </div>
+        {% endif %}
+        {% if prefs.top_ingredients %}
+        <div style="margin-top:1rem;">
+          <div style="font-size:0.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:0.75rem;">Most Liked Ingredients</div>
+          {% set max_ing = prefs.top_ingredients[0][1] if prefs.top_ingredients else 1 %}
+          {% for ing, count in prefs.top_ingredients %}
+          <div class="pref-row">
+            <span>{{ ing }}</span>
+            <div class="pref-bar-wrap">
+              <div class="pref-bar" style="width:{{ (count / max_ing * 100)|int }}%"></div>
+            </div>
+            <span style="font-size:0.75rem;color:var(--muted);">{{ count }}×</span>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+        <p style="font-size:0.75rem;color:var(--muted);margin-top:1rem;">
+          Based on {{ prefs.total_likes }} liked and {{ prefs.total_dislikes }} disliked recipes.
+          The more you rate, the smarter recommendations get!
+        </p>
+      {% else %}
+        <div class="empty-panel">
+          <div class="ei">❤️</div>
+          Like some recipes to build your taste profile!
+          <br><a href="/recommend" style="color:var(--accent);">Browse recipes →</a>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Recent Likes/Dislikes -->
+    <div class="panel">
+      <div class="section-title">
+        ❤️ Recently Rated
+        <span>your recipe feedback</span>
+      </div>
+      {% if recent_likes or recent_dislikes %}
+        {% for p in recent_likes %}
+        <div class="pref-recipe-item">
+          <span class="pref-icon">❤️</span>
+          <div style="flex:1;">
+            <div style="font-weight:500;">{{ p.recipe_name }}</div>
+            <div style="font-size:0.72rem;color:var(--muted);">{{ p.cuisine }} · {{ p.meal_type }}</div>
+          </div>
+          <span style="font-size:0.72rem;color:var(--muted);">{{ p.created_on.strftime('%b %d') }}</span>
+        </div>
+        {% endfor %}
+        {% for p in recent_dislikes %}
+        <div class="pref-recipe-item">
+          <span class="pref-icon">👎</span>
+          <div style="flex:1;">
+            <div style="font-weight:500;color:var(--muted);">{{ p.recipe_name }}</div>
+            <div style="font-size:0.72rem;color:var(--muted);">{{ p.cuisine }} · {{ p.meal_type }}</div>
+          </div>
+          <span style="font-size:0.72rem;color:var(--muted);">{{ p.created_on.strftime('%b %d') }}</span>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="empty-panel">
+          <div class="ei">🌟</div>
+          Rate recipes to teach KitchenMind your family's taste!
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Weekly Plan Summary -->
+    {% if plan_summary %}
+    <div class="panel full-width">
+      <div class="section-title">
+        📅 Latest Weekly Plan
+        <span>week of {{ plan_summary.week_start.strftime('%B %d, %Y') }} · {{ plan_summary.total_meals }} meals</span>
+      </div>
+      <div class="plan-days">
+        {% for day, meals in plan_summary.preview.items() %}
+        <div class="plan-day-chip">
+          <strong>{{ day[:3] }}</strong>
+          {% for meal in meals %}
+          <div style="font-size:0.72rem;color:var(--muted);">
+            {% if meal == 'Breakfast' %}🌅{% elif meal == 'Lunch' %}☀️{% else %}🌙{% endif %}
+            {{ meal }}
+          </div>
+          {% endfor %}
+        </div>
+        {% endfor %}
+      </div>
+      <a href="/plan_history" class="btn btn-ghost btn-sm" style="margin-top:1rem;">View Full History →</a>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

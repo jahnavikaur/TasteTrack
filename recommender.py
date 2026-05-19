@@ -56,26 +56,53 @@ def score_recipe(recipe_ingredients, pantry_items):
     score = matched * 2 - missing * 1 + expiry_bonus
     return score, matched, missing
 
-def recommend_recipes(pantry_items, top_n=10, meal_type=None):
+def recommend_recipes(pantry_items, top_n=10, meal_type=None, user_id=None):
     df = load_recipes()
     results = []
 
+    # Load preference profile if user_id given
+    profile = None
+    if user_id:
+        from preferences import get_preference_profile, preference_score
+        profile = get_preference_profile(user_id)
+
     for _, row in df.iterrows():
         score, matched, missing = score_recipe(row["ingredients"], pantry_items)
+
+        # Add preference bonus on top of pantry score
+        pref_bonus = 0
+        if profile:
+            recipe_dict = {
+                "recipe_id":   row["recipe_id"],
+                "cuisine":     row["cuisine"],
+                "meal_type":   row["meal_type"],
+                "ingredients": row["ingredients"],
+            }
+            from preferences import preference_score as pref_score
+            pref_bonus = pref_score(recipe_dict, profile)
+
+        final_score = score + pref_bonus
+
+        # Skip hard disliked recipes
+        if pref_bonus == -999:
+            continue
+
         results.append({
-            "recipe_id": row["recipe_id"],
-            "name": row["name"],
-            "meal_type": row["meal_type"],
-            "cuisine": row["cuisine"],
-            "time": row["cooking_time"],
-            "matched": matched,
-            "missing": missing,
-            "score": score,
+            "recipe_id":   row["recipe_id"],
+            "name":        row["name"],
+            "meal_type":   row["meal_type"],
+            "cuisine":     row["cuisine"],
+            "time":        row["cooking_time"],
+            "matched":     matched,
+            "missing":     missing,
+            "score":       round(final_score, 2),
             "ingredients": row["ingredients"],
-            "instructions": row["instructions"]
+            "instructions":row["instructions"]
         })
 
     results = sorted(results, key=lambda x: x["score"], reverse=True)
     if meal_type:
         results = [r for r in results if r["meal_type"].lower() == meal_type.lower()]
     return results[:top_n]
+
+   

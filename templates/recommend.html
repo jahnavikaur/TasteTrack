@@ -82,6 +82,20 @@
   .empty-state { text-align:center; padding:5rem 2rem; color:var(--muted); }
   .empty-state .icon { font-size:4rem; margin-bottom:1rem; }
   .empty-state h3 { font-family:var(--font-display); font-size:1.4rem; color:var(--text); margin-bottom:0.5rem; }
+
+  .pref-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 12px; border-radius: 2px; font-size: 0.75rem;
+  font-weight: 600; cursor: pointer; border: 1px solid var(--border);
+  background: transparent; color: var(--muted);
+  font-family: var(--font-body);
+  transition: all 0.2s;
+}
+.pref-btn:hover { border-color: var(--muted); color: var(--text); }
+.active-like    { background: rgba(224,112,112,0.12); border-color: var(--red); color: var(--red); }
+.active-dislike { background: rgba(138,128,112,0.15); border-color: var(--muted); color: var(--muted); }
+.pref-hint { font-size: 0.7rem; color: var(--muted); margin-left: auto; }
+
 </style>
 {% endblock %}
 
@@ -110,6 +124,7 @@
   {% if r.meal_type == 'Breakfast' %}🌅{% elif r.meal_type == 'Lunch' %}☀️{% else %}🌙{% endif %}
   {{ r.meal_type }} · {{ r.cuisine }}
 </div>
+
         <div class="recipe-name">{{ r.name }}</div>
         <div class="recipe-meta">
           <span>⏱ {{ r.time }} min</span>
@@ -121,6 +136,30 @@
           <div class="score-track">
             <div class="score-fill" data-score="{{ pct }}"></div>
           </div>
+
+          <div style="padding:0.75rem 1.25rem;border-top:1px solid var(--border);display:flex;gap:0.5rem;align-items:center;">
+  <button class="pref-btn like-btn {% if r.recipe_id in liked %}active-like{% endif %}"
+          data-action="like"
+          data-recipe-id="{{ r.recipe_id }}"
+          data-name="{{ r.name|e }}"
+          data-cuisine="{{ r.cuisine|e }}"
+          data-meal-type="{{ r.meal_type|e }}"
+          data-ingredients='{{ r.ingredients | tojson }}'
+          title="Like this recipe">
+    ❤️ <span class="pref-count">Like</span>
+  </button>
+  <button class="pref-btn dislike-btn {% if r.recipe_id in disliked %}active-dislike{% endif %}"
+          data-action="dislike"
+          data-recipe-id="{{ r.recipe_id }}"
+          data-name="{{ r.name|e }}"
+          data-cuisine="{{ r.cuisine|e }}"
+          data-meal-type="{{ r.meal_type|e }}"
+          data-ingredients='{{ r.ingredients | tojson }}'
+          title="Not for us">
+    👎 <span class="pref-count">Dislike</span>
+  </button>
+  <span class="pref-hint">Rate to personalise</span>
+</div>
           <div class="score-num">{{ r.score }}</div>
         </div>
         <div class="match-info">
@@ -209,5 +248,57 @@
   document.querySelectorAll('[data-close-modal]').forEach(btn => {
     btn.addEventListener('click', () => closeModal(btn.dataset.closeModal));
   });
+
+  document.querySelectorAll('.pref-btn').forEach(btn => {
+    btn.addEventListener('click', event => {
+      event.stopPropagation();
+      const recipeId = parseInt(btn.dataset.recipeId, 10);
+      const action = btn.dataset.action;
+      const name = btn.dataset.name;
+      const cuisine = btn.dataset.cuisine;
+      const mealType = btn.dataset.mealType;
+      const ingredients = JSON.parse(btn.dataset.ingredients || '[]');
+      rateRecipe(event, recipeId, action, name, cuisine, mealType, ingredients);
+    });
+  });
+</script>
+
+<script>
+  async function rateRecipe(e, recipeId, action, name, cuisine, mealType, ingredients) {
+    const btn = e.currentTarget || document.activeElement;
+
+    try {
+      const res  = await fetch('/recipe/preference', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+          recipe_id: recipeId, action, name, cuisine,
+          meal_type: mealType, ingredients
+        })
+      });
+      const data = await res.json();
+
+      // Update button UI
+      const card     = btn.closest('.recipe-card');
+      const likeBtn  = card.querySelector('.like-btn');
+      const dislikeBtn = card.querySelector('.dislike-btn');
+
+      likeBtn.classList.remove('active-like');
+      dislikeBtn.classList.remove('active-dislike');
+
+      if (data.status !== 'removed') {
+        if (action === 'like')    likeBtn.classList.add('active-like');
+        if (action === 'dislike') dislikeBtn.classList.add('active-dislike');
+      }
+
+      const msg = data.status === 'removed'
+        ? '↩ Rating removed'
+        : action === 'like' ? '❤️ Liked! Recommendations updated.' : '👎 Got it! We\'ll learn from this.';
+      showToast(msg);
+
+    } catch(err) {
+      showToast('❌ Could not save rating.');
+    }
+  }
 </script>
 {% endblock %}

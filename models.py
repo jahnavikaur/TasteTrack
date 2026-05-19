@@ -14,6 +14,7 @@ class User(db.Model, UserMixin):
     # Relationships — each user owns their own data
     pantry_items  = db.relationship('PantryItem', backref='owner', lazy=True, cascade='all, delete-orphan')
     weekly_plans  = db.relationship('WeeklyPlan',  backref='owner', lazy=True, cascade='all, delete-orphan')
+    preferences   = db.relationship('RecipePreference', backref='owner', lazy=True, cascade='all, delete-orphan')
 
     def __repr__(self):
         return f'<User {self.username}>'
@@ -35,3 +36,21 @@ class WeeklyPlan(db.Model):
     week_start  = db.Column(db.Date, nullable=False)
     plan_data   = db.Column(db.Text, nullable=False)
     created_on  = db.Column(db.DateTime, default=datetime.utcnow)
+
+class RecipePreference(db.Model):
+    id          = db.Column(db.Integer, primary_key=True)
+    user_id     = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    recipe_id   = db.Column(db.Integer, nullable=False)
+    recipe_name = db.Column(db.String(200), nullable=False)
+    action      = db.Column(db.String(10), nullable=False)  # 'like' or 'dislike'
+    cuisine     = db.Column(db.String(100))
+    meal_type   = db.Column(db.String(50))
+    ingredients = db.Column(db.Text)   # JSON list
+    created_on  = db.Column(db.DateTime, default=datetime.utcnow)
+
+class DashboardLog(db.Model):
+    id         = db.Column(db.Integer, primary_key=True)
+    user_id    = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    event      = db.Column(db.String(100))   # 'pantry_add', 'recipe_cooked' etc
+    detail     = db.Column(db.String(200))
+    created_on = db.Column(db.DateTime, default=datetime.utcnow)
