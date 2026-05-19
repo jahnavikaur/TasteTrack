@@ -136,29 +136,27 @@
           <span style="color:var(--muted); font-weight:400;">{{ items|length }} item{{ 's' if items|length != 1 }}</span>
         </div>
        {% for item in items %}
-<div class="shop-item" id="item-{{ loop.index }}-{{ category|replace(" ","") }}"
+{% set item_id = category|replace(' ','')|replace('&','') + '_' + loop.index|string %}
+<div class="shop-item" id="row-{{ item_id }}"
      style="animation-delay: {{ loop.index * 0.04 }}s; flex-wrap:wrap; gap:0.5rem;">
-    <input type="checkbox" class="shop-checkbox"
-      data-item-name="{{ item.name|e }}"
-      onchange="handleCheck(this, this.dataset.itemName)">
+  <input type="checkbox" class="shop-checkbox" data-item-name="{{ item.name|e }}">
   <span class="shop-name">{{ item.name }}</span>
   <span class="shop-meals">{{ item.meals }} meal{{ 's' if item.meals != 1 }}</span>
 
-  <!-- Quantity + unit + add button (shown inline) -->
   <div class="shop-buy-row" style="display:flex;align-items:center;gap:6px;margin-left:auto;">
     <input type="number" class="qty-input" value="1" min="0.1" step="0.1"
-          id="qty-{{ loop.index }}-{{ category|replace(" ","") }}" />
-    <select class="unit-select" id="unit-{{ loop.index }}-{{ category|replace(" ","") }}">
+           id="qty-{{ item_id }}" />
+    <select class="unit-select" id="unit-{{ item_id }}">
       <option>unit</option><option>kg</option><option>g</option>
       <option>L</option><option>ml</option><option>cup</option>
       <option>tbsp</option><option>tsp</option><option>pack</option>
     </select>
     <button class="add-to-pantry-btn"
-            id="btn-{{ loop.index }}-{{ category|replace(" ","") }}"
+            id="btn-{{ item_id }}"
             data-item-name="{{ item.name|e }}"
-            data-qty-id="qty-{{ loop.index }}-{{ category|replace(" ","") }}"
-            data-unit-id="unit-{{ loop.index }}-{{ category|replace(" ","") }}"
-            data-btn-id="btn-{{ loop.index }}-{{ category|replace(" ","") }}">
+            data-qty-id="qty-{{ item_id }}"
+            data-unit-id="unit-{{ item_id }}"
+            data-btn-id="btn-{{ item_id }}">
       + Add to Pantry
     </button>
   </div>

@@ -39,12 +39,20 @@
     try {
       const res  = await fetch('/pantry/add_from_shopping', {
         method:  'POST',
+        credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ item_name: itemName, quantity: qty, unit: unit })
       });
+
+      // handle non-JSON or auth redirects
+      if (!res.ok) {
+        let text = await res.text();
+        throw new Error(`Server responded ${res.status}: ${text.slice(0,200)}`);
+      }
+
       const data = await res.json();
 
-      if (data.status === 'ok') {
+      if (data && data.status === 'ok') {
         btn.outerHTML = `<span class="added-tick">✓ Added</span>`;
         if (row) {
           const cb = row.querySelector('.shop-checkbox');

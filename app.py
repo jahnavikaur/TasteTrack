@@ -331,7 +331,7 @@ def add_from_shopping():
     if not item_name:
         return jsonify({'status': 'error', 'message': 'No item name'}), 400
 
-    from synonyms import fuzzy_canonicalize
+    from recommender import fuzzy_canonicalize
     canonical = fuzzy_canonicalize(item_name)
 
     existing = PantryItem.query.filter_by(user_id=current_user.id)\
@@ -340,16 +340,15 @@ def add_from_shopping():
         existing.quantity += quantity
     else:
         new_item = PantryItem(
-            user_id   = current_user.id,
-            item_name = canonical,
-            quantity  = quantity,
-            unit      = unit
+            user_id=current_user.id,
+            item_name=canonical,
+            quantity=quantity,
+            unit=unit
         )
         db.session.add(new_item)
 
     db.session.commit()
     return jsonify({'status': 'ok', 'message': f'{canonical} added to pantry!'})
-
 
 if __name__ == '__main__':
     app.run(debug=True)
