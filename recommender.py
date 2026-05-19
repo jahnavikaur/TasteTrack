@@ -4,6 +4,17 @@ from synonyms import canonicalize
 from rapidfuzz import process, fuzz
 import os
 
+NON_VEG_KEYWORDS = [
+    "chicken", "mutton", "lamb", "beef", "pork", "fish", "prawn", "shrimp",
+    "egg", "eggs", "meat", "tuna", "salmon", "crab", "lobster", "bacon",
+    "ham", "sausage", "turkey", "duck", "goat", "keema", "kheema",
+]
+
+def is_veg(ingredients: list) -> bool:
+    for ing in ingredients:
+        if any(kw in ing.lower() for kw in NON_VEG_KEYWORDS):
+            return False
+    return True
 def fuzzy_canonicalize(name: str, threshold: int = 80) -> str:
     """
     First tries exact synonym lookup.
@@ -56,20 +67,22 @@ def score_recipe(recipe_ingredients, pantry_items):
     score = matched * 2 - missing * 1 + expiry_bonus
     return score, matched, missing
 
-def recommend_recipes(pantry_items, top_n=10, meal_type=None, user_id=None):
+def recommend_recipes(pantry_items, top_n=10, meal_type=None, user_id=None, veg_only=False):
     df = load_recipes()
     results = []
+    
 
-    # Load preference profile if user_id given
     profile = None
     if user_id:
-        from preferences import get_preference_profile, preference_score
+        from preferences import get_preference_profile
         profile = get_preference_profile(user_id)
 
     for _, row in df.iterrows():
+        if veg_only and not is_veg(row["ingredients"]):
+            continue
+
         score, matched, missing = score_recipe(row["ingredients"], pantry_items)
 
-        # Add preference bonus on top of pantry score
         pref_bonus = 0
         if profile:
             recipe_dict = {
@@ -81,28 +94,30 @@ def recommend_recipes(pantry_items, top_n=10, meal_type=None, user_id=None):
             from preferences import preference_score as pref_score
             pref_bonus = pref_score(recipe_dict, profile)
 
-        final_score = score + pref_bonus
-
-        # Skip hard disliked recipes
         if pref_bonus == -999:
             continue
 
+        final_score = score + pref_bonus
+
         results.append({
-            "recipe_id":   row["recipe_id"],
-            "name":        row["name"],
-            "meal_type":   row["meal_type"],
-            "cuisine":     row["cuisine"],
-            "time":        row["cooking_time"],
-            "matched":     matched,
-            "missing":     missing,
-            "score":       round(final_score, 2),
-            "ingredients": row["ingredients"],
-            "instructions":row["instructions"]
+            "recipe_id":    row["recipe_id"],
+            "name":         row["name"],
+            "meal_type":    row["meal_type"],
+            "cuisine":      row["cuisine"],
+            "time":         row["cooking_time"],
+            "matched":      matched,
+            "missing":      missing,
+            "score":        round(final_score, 2),
+            "ingredients":  row["ingredients"],
+            "instructions": row["instructions"],
+            "is_veg":       is_veg(row["ingredients"]),
         })
 
-    results = sorted(results, key=lambda x: x["score"], reverse=True)
     if meal_type:
         results = [r for r in results if r["meal_type"].lower() == meal_type.lower()]
-    return results[:top_n]
 
-   
+    if veg_only:
+        results = [r for r in results if r["is_veg"]]
+
+    results = sorted(results, key=lambda x: x["score"], reverse=True)
+    return results[:top_n]

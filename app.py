@@ -215,16 +215,18 @@ def update_item(item_id):
 @login_required
 def recommend():
     meal_type = request.args.get('meal_type', '')
+    veg_only  = request.args.get('veg_only', '') == '1'   # ADD THIS
     recipes   = recommend_recipes(
         get_pantry_list(), top_n=20,
         meal_type=meal_type if meal_type else None,
-        user_id=current_user.id
+        user_id=current_user.id,
+        veg_only=veg_only,        # ADD THIS
     )
-    # Get user's liked/disliked recipe IDs for UI
     liked    = {p.recipe_id for p in current_user.preferences if p.action == 'like'}
     disliked = {p.recipe_id for p in current_user.preferences if p.action == 'dislike'}
     return render_template('recommend.html', recipes=recipes,
-                           meal_type=meal_type, liked=liked, disliked=disliked)
+                           meal_type=meal_type, liked=liked, disliked=disliked,
+                           veg_only=veg_only)    # ADD THIS
 
 
 # ── Weekly Plan ───────────────────────────────────────────────────────────────
