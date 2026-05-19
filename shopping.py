@@ -34,7 +34,7 @@ def generate_shopping_list(plan: dict, pantry_items: list) -> dict:
     Compare all ingredients in the weekly plan against pantry.
     Return missing items grouped by category.
     """
-    from synonyms import fuzzy_canonicalize
+    from recommender import fuzzy_canonicalize
 
     # Build pantry set with canonicalized names
     pantry_set = {fuzzy_canonicalize(p["item_name"]) for p in pantry_items}

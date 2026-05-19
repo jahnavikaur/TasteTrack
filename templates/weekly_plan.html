@@ -325,7 +325,7 @@
   </div>
 
   <form method="POST" action="/save_weekly_plan" id="save-form">
-    <input type="hidden" name="plan_data" value="{{ plan | tojson | e }}" />
+    <input type="hidden" name="plan_data" value='{{ plan | tojson }}' />
   </form>
 
  <div class="save-bar">
@@ -341,7 +341,7 @@
   </div>
 </div>
 <form method="POST" action="/shopping_list" id="shop-form">
-  <input type="hidden" name="plan_data" value="{{ plan | tojson | e }}" />
+  <input type="hidden" name="plan_data" value='{{ plan | tojson }}' />
 </form>
 </div>
 {% endblock %}

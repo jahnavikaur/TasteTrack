@@ -3,7 +3,7 @@ from flask import Flask, render_template, request, redirect, url_for, jsonify, f
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from flask_bcrypt import Bcrypt
 from models import db, User, PantryItem, WeeklyPlan
-from recommender import recommend_recipes
+from recommender import recommend_recipes, load_recipes
 from planner import generate_weekly_plan
 from shopping import generate_shopping_list
 from datetime import datetime, date
@@ -143,7 +143,7 @@ def index():
 @login_required
 def pantry():
     if request.method == 'POST':
-        from synonyms import fuzzy_canonicalize
+        from recommender import fuzzy_canonicalize
         item_name   = fuzzy_canonicalize(request.form['item_name'].strip())
         quantity    = float(request.form['quantity'])
         unit        = request.form['unit']
@@ -281,7 +281,7 @@ def shopping_list():
     plan     = json.loads(plan_json)
     shopping = generate_shopping_list(plan, get_pantry_list())
     total    = sum(len(items) for items in shopping.values())
-    return render_template('shopping_list.html',
+    return render_template('shopping.html',
                            shopping=shopping, total=total, plan_json=plan_json)
 
 
