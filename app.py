@@ -130,10 +130,12 @@ def index():
                          if i.expiry_date and (i.expiry_date - date.today()).days <= 5)
     last_plan = WeeklyPlan.query.filter_by(user_id=current_user.id)\
                                 .order_by(WeeklyPlan.created_on.desc()).first()
+    recipe_count = len(load_recipes())
     return render_template('index.html',
                            pantry_count=pantry_count,
                            expiring_count=expiring_count,
-                           last_plan=last_plan)
+                           last_plan=last_plan,
+                           recipe_count=recipe_count)
 
 
 # ── Pantry ────────────────────────────────────────────────────────────────────
