@@ -72,8 +72,8 @@
     <form method="POST" action="/login">
       <div class="form-group">
         <label>Username</label>
-        <input type="text" name="username" placeholder="your username"
-               required autocomplete="username" />
+       <input type="text" name="username" id="username-input"
+       placeholder="your username" required autocomplete="username" />
       </div>
       <div class="form-group">
         <label>Password</label>
@@ -96,4 +96,14 @@
     </div>
   </div>
 </div>
+{% block scripts %}
+<script>
+  // Pre-fill username when switching accounts
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('switch') && params.get('username')) {
+    document.getElementById('username-input').value = params.get('username');
+    document.querySelector('input[name="password"]').focus();
+  }
+</script>
+{% endblock %}
 {% endblock %}

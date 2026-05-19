@@ -76,15 +76,43 @@
       <a href="/"            class="{% if request.endpoint == 'index' %}active{% endif %}">Home</a>
       <a href="/pantry"      class="{% if request.endpoint == 'pantry' %}active{% endif %}">Pantry</a>
       <a href="/recommend"   class="{% if request.endpoint == 'recommend' %}active{% endif %}">Recipes</a>
+      <a href="/chat" class="{% if request.endpoint == 'chat' %}active{% endif %}"
+   style="{% if request.endpoint != 'chat' %}color:var(--accent){% endif %}">
+  🤖 AI Chat
+</a>
       <a href="/weekly_plan" class="{% if request.endpoint == 'weekly_plan' %}active{% endif %}">Weekly Plan</a>
       <a href="/plan_history"class="{% if request.endpoint == 'plan_history' %}active{% endif %}">History</a>
-      <a href="/profile"     class="{% if request.endpoint == 'profile' %}active{% endif %}"
-         style="display:flex;align-items:center;gap:6px;">
-        <span style="background:var(--accent);color:#1a1510;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;">
-          {{ current_user.username[0].upper() }}
-        </span>
-        {{ current_user.username }}
-      </a>
+      <a href="/chat" class="{% if request.endpoint == 'chat' %}active{% endif %}">🤖 AI Chat</a>
+      <div class="account-switcher" id="acct-switcher">
+  <button class="acct-trigger" onclick="toggleAccountMenu()">
+    <span class="acct-avatar">{{ current_user.username[0].upper() }}</span>
+    <span class="acct-name">{{ current_user.username }}</span>
+    <span class="acct-caret">▾</span>
+  </button>
+
+  <div class="acct-dropdown" id="acct-dropdown">
+    <div class="acct-current">
+      <div class="acct-avatar-lg">{{ current_user.username[0].upper() }}</div>
+      <div>
+        <div class="acct-uname">{{ current_user.username }}</div>
+        <div class="acct-email">{{ current_user.email }}</div>
+        <span class="acct-active-badge">● Active</span>
+      </div>
+    </div>
+
+    <hr style="border:none;border-top:1px solid var(--border);margin:0.5rem 0;">
+
+    <div class="saved-accounts" id="saved-accounts">
+      <!-- Populated by JS from localStorage -->
+    </div>
+
+    <hr style="border:none;border-top:1px solid var(--border);margin:0.5rem 0;">
+
+    <a href="/profile" class="acct-menu-item">👤 My Profile</a>
+    <a href="/login?switch=1" class="acct-menu-item">➕ Add Another Account</a>
+    <a href="/logout" class="acct-menu-item" style="color:var(--red);">⎋ Sign Out</a>
+  </div>
+</div>
     {% else %}
       <a href="/login"    class="{% if request.endpoint == 'login' %}active{% endif %}">Login</a>
       <a href="/register" class="btn btn-primary btn-sm">Sign Up</a>
@@ -241,6 +269,93 @@
       nav { padding: 0 1rem; }
       .nav-links a { padding: 6px 10px; font-size: 0.82rem; }
       .container { padding: 1rem; }
+     
+      /* ── Account Switcher ── */
+.account-switcher { position: relative; }
+.acct-trigger {
+  display: flex; align-items: center; gap: 7px;
+  background: transparent; border: 1px solid var(--border);
+  border-radius: 20px; padding: 4px 12px 4px 4px;
+  cursor: pointer; color: var(--text);
+  font-family: var(--font-body); font-size: 0.85rem;
+  transition: border-color 0.2s, background 0.2s;
+}
+.acct-trigger:hover { border-color: var(--accent); background: var(--accent-pale); }
+.acct-avatar {
+  width: 26px; height: 26px; border-radius: 50%;
+  background: var(--accent); color: #1a1510;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.75rem; font-weight: 700; flex-shrink: 0;
+}
+.acct-name { font-weight: 500; }
+.acct-caret { font-size: 0.7rem; color: var(--muted); transition: transform 0.2s; }
+.acct-trigger.open .acct-caret { transform: rotate(180deg); }
+
+.acct-dropdown {
+  display: none; position: absolute; top: calc(100% + 10px); right: 0;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; min-width: 240px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  padding: 0.75rem; z-index: 200;
+  animation: dropIn 0.2s cubic-bezier(0.4,0,0.2,1);
+}
+.acct-dropdown.open { display: block; }
+@keyframes dropIn {
+  from { opacity:0; transform: translateY(-8px); }
+  to   { opacity:1; transform: translateY(0); }
+}
+
+.acct-current {
+  display: flex; gap: 0.75rem; align-items: center;
+  padding: 0.5rem; border-radius: 6px;
+  background: var(--accent-pale);
+}
+.acct-avatar-lg {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: var(--accent); color: #1a1510;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1rem; font-weight: 700; flex-shrink: 0;
+}
+.acct-uname  { font-weight: 600; font-size: 0.9rem; }
+.acct-email  { font-size: 0.75rem; color: var(--muted); }
+.acct-active-badge {
+  font-size: 0.68rem; color: var(--green);
+  font-weight: 600; letter-spacing: 0.04em;
+}
+
+.acct-menu-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px; border-radius: 6px;
+  color: var(--muted); text-decoration: none; font-size: 0.85rem;
+  transition: background 0.15s, color 0.15s; cursor: pointer;
+}
+.acct-menu-item:hover { background: var(--surface2); color: var(--text); }
+
+.saved-acct-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 10px; border-radius: 6px;
+  cursor: pointer; transition: background 0.15s;
+  width: 100%; background: none; border: none;
+  font-family: var(--font-body); text-align: left;
+}
+.saved-acct-item:hover { background: var(--surface2); }
+.saved-acct-mini-avatar {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--muted); display: flex; align-items: center;
+  justify-content: center; font-size: 0.8rem; font-weight: 700;
+}
+.saved-acct-info { flex: 1; }
+.saved-acct-uname { font-size: 0.85rem; font-weight: 500; color: var(--text); }
+.saved-acct-hint  { font-size: 0.72rem; color: var(--muted); }
+.saved-acct-remove {
+  color: var(--muted); font-size: 0.75rem; padding: 2px 6px;
+  border-radius: 4px; background: none; border: none;
+  cursor: pointer; font-family: var(--font-body);
+}
+.saved-acct-remove:hover { color: var(--red); }
+
+.no-saved { font-size: 0.78rem; color: var(--muted); padding: 4px 10px; }
     }
 
   </style>
@@ -258,6 +373,8 @@
       <a href="/recommend" class="{% if request.endpoint == 'recommend' %}active{% endif %}">Recipes</a>
       <a href="/weekly_plan" class="{% if request.endpoint == 'weekly_plan' %}active{% endif %}">Weekly Plan</a>
       <a href="/plan_history" class="{% if request.endpoint == 'plan_history' %}active{% endif %}">History</a>
+      <a href="/plan_history"class="{% if request.endpoint == 'plan_history' %}active{% endif %}">History</a>
+<a href="/chat" class="{% if request.endpoint == 'chat' %}active{% endif %}">🤖 AI Chat</a>
     </div>
   </nav>
 
@@ -274,5 +391,77 @@
     }
   </script>
   {% block scripts %}{% endblock %}
+  <script>
+  // ── Account switcher ──
+  const STORAGE_KEY = 'km_saved_accounts';
+  const CURRENT_USER = '{{ current_user.username }}';
+
+  function toggleAccountMenu() {
+    const btn = document.querySelector('.acct-trigger');
+    const dd  = document.getElementById('acct-dropdown');
+    btn.classList.toggle('open');
+    dd.classList.toggle('open');
+    if (dd.classList.contains('open')) renderSavedAccounts();
+  }
+
+  // Close when clicking outside
+  document.addEventListener('click', e => {
+    if (!document.getElementById('acct-switcher').contains(e.target)) {
+      document.querySelector('.acct-trigger')?.classList.remove('open');
+      document.getElementById('acct-dropdown')?.classList.remove('open');
+    }
+  });
+
+  function getSavedAccounts() {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+    catch { return []; }
+  }
+
+  function saveCurrentAccount() {
+    // Called after login — saves username to localStorage list
+    const accounts = getSavedAccounts();
+    if (!accounts.find(a => a.username === CURRENT_USER)) {
+      accounts.push({ username: CURRENT_USER, savedAt: Date.now() });
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(accounts));
+    }
+  }
+
+  function removeAccount(username) {
+    const accounts = getSavedAccounts().filter(a => a.username !== username);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(accounts));
+    renderSavedAccounts();
+  }
+
+  function renderSavedAccounts() {
+    const container = document.getElementById('saved-accounts');
+    // Other accounts — exclude current one
+    const others = getSavedAccounts().filter(a => a.username !== CURRENT_USER);
+
+    if (others.length === 0) {
+      container.innerHTML = '<div class="no-saved">No other saved accounts</div>';
+      return;
+    }
+
+    container.innerHTML = others.map(a => `
+      <div class="saved-acct-item" onclick="switchAccount('${a.username}')">
+        <div class="saved-acct-mini-avatar">${a.username[0].toUpperCase()}</div>
+        <div class="saved-acct-info">
+          <div class="saved-acct-uname">${a.username}</div>
+          <div class="saved-acct-hint">Tap to switch</div>
+        </div>
+        <button class="saved-acct-remove"
+                onclick="event.stopPropagation(); removeAccount('${a.username}')">✕</button>
+      </div>
+    `).join('');
+  }
+
+  function switchAccount(username) {
+    // Redirect to login with username pre-filled
+    window.location.href = `/login?switch=1&username=${encodeURIComponent(username)}`;
+  }
+
+  // Auto-save current user on every page load
+  saveCurrentAccount();
+</script>
 </body>
 </html>

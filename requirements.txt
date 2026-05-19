@@ -1,5 +1,9 @@
+
 flask
 flask-sqlalchemy
+flask-login
+flask-bcrypt
 pandas
-python-dateutil
+python-dotenv
 rapidfuzz
+groq

@@ -8,6 +8,7 @@ from planner import generate_weekly_plan
 from shopping import generate_shopping_list
 from datetime import datetime, date
 import json
+from chatbot import chat_with_ai
 
 app = Flask(__name__)
 
@@ -283,6 +284,71 @@ def shopping_list():
     total    = sum(len(items) for items in shopping.values())
     return render_template('shopping.html',
                            shopping=shopping, total=total, plan_json=plan_json)
+@app.route('/chat')
+@login_required
+def chat():
+    pantry_items = PantryItem.query.filter_by(user_id=current_user.id).all()
+    expiring = [p for p in pantry_items
+                if p.expiry_date and (p.expiry_date - date.today()).days <= 5]
+    return render_template('chat.html',
+                           pantry_items=pantry_items,
+                           expiring=expiring,
+                           today=date.today())
+
+
+@app.route('/chat/send', methods=['POST'])
+@login_required
+def chat_send():
+    data         = request.get_json()
+    user_message = data.get('message', '').strip()
+    history      = data.get('history', [])
+
+    if not user_message:
+        return jsonify({'error': 'Empty message'}), 400
+
+    if len(user_message) > 500:
+        return jsonify({'error': 'Message too long'}), 400
+
+    pantry_items = PantryItem.query.filter_by(user_id=current_user.id).all()
+    pantry_list  = [{
+        "item_name":   p.item_name,
+        "quantity":    p.quantity,
+        "unit":        p.unit,
+        "expiry_date": p.expiry_date
+    } for p in pantry_items]
+
+    reply = chat_with_ai(user_message, pantry_list, history)
+    return jsonify({'reply': reply})
+
+@app.route('/pantry/add_from_shopping', methods=['POST'])
+@login_required
+def add_from_shopping():
+    data      = request.get_json()
+    item_name = data.get('item_name', '').strip()
+    quantity  = float(data.get('quantity', 1))
+    unit      = data.get('unit', 'unit')
+
+    if not item_name:
+        return jsonify({'status': 'error', 'message': 'No item name'}), 400
+
+    from synonyms import fuzzy_canonicalize
+    canonical = fuzzy_canonicalize(item_name)
+
+    existing = PantryItem.query.filter_by(user_id=current_user.id)\
+                               .filter(PantryItem.item_name.ilike(canonical)).first()
+    if existing:
+        existing.quantity += quantity
+    else:
+        new_item = PantryItem(
+            user_id   = current_user.id,
+            item_name = canonical,
+            quantity  = quantity,
+            unit      = unit
+        )
+        db.session.add(new_item)
+
+    db.session.commit()
+    return jsonify({'status': 'ok', 'message': f'{canonical} added to pantry!'})
 
 
 if __name__ == '__main__':

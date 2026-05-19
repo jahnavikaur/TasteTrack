@@ -57,7 +57,9 @@
   .features { max-width: 1100px; margin: 0 auto; padding: 5rem 2rem; }
   .features h2 { font-family: var(--font-display); font-size: 2rem; margin-bottom: 0.5rem; }
   .features-sub { color: var(--muted); margin-bottom: 3rem; }
-  .feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
+.feature-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; }
+@media(max-width:900px) { .feature-grid { grid-template-columns: repeat(2,1fr); } }
+@media(max-width:500px) { .feature-grid { grid-template-columns: 1fr; } }
   .feature-card {
     background: var(--surface); border: 1px solid var(--border);
     border-radius: var(--radius); padding: 1.75rem;
@@ -81,6 +83,7 @@
 .feature-card:nth-child(2) { animation-delay: 0.1s; }
 .feature-card:nth-child(3) { animation-delay: 0.2s; }
 
+
   .expiry-alert {
     background: rgba(232,201,109,0.08); border: 1px solid rgba(232,201,109,0.25);
     border-radius: var(--radius); padding: 1rem 1.5rem;
@@ -100,12 +103,15 @@
 <p class="hero-sub anim-up2">
       KitchenMind tracks your pantry, suggests recipes based on what you have, and plans your entire week — automatically deducting ingredients as you cook.
     </p>
-   <div class="hero-cta anim-up2">
+ <div class="hero-cta anim-up2">
   <a href="/pantry" class="btn btn-primary" style="font-size:0.95rem; padding:14px 32px;">
     🧺 Manage Pantry
   </a>
   <a href="/weekly_plan" class="btn btn-ghost" style="font-size:0.95rem; padding:14px 32px;">
     📅 Plan My Week
+  </a>
+  <a href="/chat" class="btn btn-ghost" style="font-size:0.95rem; padding:14px 32px; color:var(--accent); border-color:var(--accent);">
+    🤖 AI Chat
   </a>
 </div>
  <div style="display:flex;align-items:center;gap:1.5rem;margin-bottom:1rem;opacity:0.35;font-size:1.8rem;">
@@ -169,6 +175,12 @@
       <p>Auto-generate a full 7-day meal plan covering breakfast, lunch, and dinner — then save it to auto-update your pantry.</p>
       <div class="feature-arrow">Plan my week →</div>
     </a>
+    <a href="/chat" class="feature-card" style="border-color:rgba(232,184,109,0.25);">
+  <div class="feature-icon">🤖</div>
+  <h3>AI Kitchen Chat</h3>
+  <p>Ask in Hindi or English. "Aaj kya banao?" — AI reads your actual pantry and answers instantly.</p>
+  <div class="feature-arrow">Start chatting →</div>
+</a>
   </div>
 </div>
 {% endblock %}

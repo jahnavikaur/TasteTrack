@@ -3,6 +3,7 @@
 
 {% block extra_head %}
 <style>
+
   .shop-layout { display: grid; grid-template-columns: 1fr 320px; gap: 2rem; align-items: start; }
 
   .category-block { margin-bottom: 1.75rem; }
@@ -12,12 +13,36 @@
     padding-bottom: 0.5rem; border-bottom: 1px solid var(--border);
     margin-bottom: 0.75rem; display: flex; justify-content: space-between;
   }
-  .shop-item {
-    display: flex; align-items: center; gap: 0.75rem;
-    padding: 0.7rem 0; border-bottom: 1px solid rgba(46,44,41,0.4);
-    animation: fadeUp 0.35s ease both;
-    cursor: pointer;
-  }
+  .shop-item.bought .shop-name { color: var(--muted); text-decoration: line-through; }
+.shop-item.bought { opacity: 0.6; }
+
+.qty-input {
+  width: 55px; padding: 3px 6px; border-radius: 2px;
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text); font-size: 0.78rem; text-align: center;
+}
+.unit-select {
+  padding: 3px 6px; border-radius: 2px;
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text); font-size: 0.78rem;
+}
+.add-to-pantry-btn {
+  padding: 4px 10px; border-radius: 2px; font-size: 0.72rem;
+  font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+  background: transparent; border: 1px solid var(--green);
+  color: var(--green); cursor: pointer; white-space: nowrap;
+  transition: background 0.15s, transform 0.15s, box-shadow 0.15s;
+}
+.add-to-pantry-btn:hover {
+  background: rgba(126,201,138,0.12);
+  transform: translate(-1px,-1px);
+  box-shadow: 2px 2px 0 0 rgba(126,201,138,0.2);
+}
+.add-to-pantry-btn:disabled {
+  opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none;
+}
+.added-tick { color: var(--green); font-size: 0.8rem; font-weight: 700; }
+
   .shop-item:last-child { border-bottom: none; }
   .shop-checkbox {
     width: 18px; height: 18px; border-radius: 2px;
@@ -110,15 +135,36 @@
           <span>{{ category }}</span>
           <span style="color:var(--muted); font-weight:400;">{{ items|length }} item{{ 's' if items|length != 1 }}</span>
         </div>
-        {% for item in items %}
-        <div class="shop-item" id="item-{{ loop.index }}-{{ category|replace(' ','') }}"
-             onclick="toggleItem(this)" style="animation-delay: {{ loop.index * 0.04 }}s">
-          <input type="checkbox" class="shop-checkbox" onclick="event.stopPropagation()" 
-                 onchange="toggleItem(this.closest('.shop-item'))">
-          <span class="shop-name">{{ item.name }}</span>
-          <span class="shop-meals">{{ item.meals }} meal{{ 's' if item.meals != 1 }}</span>
-        </div>
-        {% endfor %}
+       {% for item in items %}
+<div class="shop-item" id="item-{{ loop.index }}-{{ category|replace(" ","") }}"
+     style="animation-delay: {{ loop.index * 0.04 }}s; flex-wrap:wrap; gap:0.5rem;">
+    <input type="checkbox" class="shop-checkbox"
+      data-item-name="{{ item.name|e }}"
+      onchange="handleCheck(this, this.dataset.itemName)">
+  <span class="shop-name">{{ item.name }}</span>
+  <span class="shop-meals">{{ item.meals }} meal{{ 's' if item.meals != 1 }}</span>
+
+  <!-- Quantity + unit + add button (shown inline) -->
+  <div class="shop-buy-row" style="display:flex;align-items:center;gap:6px;margin-left:auto;">
+    <input type="number" class="qty-input" value="1" min="0.1" step="0.1"
+          id="qty-{{ loop.index }}-{{ category|replace(" ","") }}" />
+    <select class="unit-select" id="unit-{{ loop.index }}-{{ category|replace(" ","") }}">
+      <option>unit</option><option>kg</option><option>g</option>
+      <option>L</option><option>ml</option><option>cup</option>
+      <option>tbsp</option><option>tsp</option><option>pack</option>
+    </select>
+    <button class="add-to-pantry-btn"
+            id="btn-{{ loop.index }}-{{ category|replace(" ","") }}"
+            data-item-name="{{ item.name|e }}"
+            data-qty-id="qty-{{ loop.index }}-{{ category|replace(" ","") }}"
+            data-unit-id="unit-{{ loop.index }}-{{ category|replace(" ","") }}"
+            data-btn-id="btn-{{ loop.index }}-{{ category|replace(" ","") }}">
+      + Add to Pantry
+    </button>
+  </div>
+</div>
+{% endfor %}
+
       </div>
       {% endif %}
       {% endfor %}
@@ -177,42 +223,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
-  const TOTAL = Number(document.getElementById('shopping-context').dataset.total || '0');
-  let checkedCount = 0;
-
-  function toggleItem(el) {
-    el.classList.toggle('checked');
-    const cb = el.querySelector('.shop-checkbox');
-    cb.checked = el.classList.contains('checked');
-    checkedCount = document.querySelectorAll('.shop-item.checked').length;
-    updateProgress();
-  }
-
-  function updateProgress() {
-    const pct = TOTAL === 0 ? 0 : checkedCount / TOTAL;
-    const circumference = 283;
-    const offset = circumference - (pct * circumference);
-    document.getElementById('ring-fill').style.strokeDashoffset = offset;
-    document.getElementById('ring-num').textContent = checkedCount;
-    document.getElementById('progress-sub').textContent = checkedCount + ' of ' + TOTAL + ' collected';
-  }
-
-  function downloadTxt() {
-    const text = document.getElementById('list-data').innerText;
-    const blob = new Blob([text], { type: 'text/plain' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'shopping_list.txt';
-    a.click();
-  }
-
-  function copyList() {
-    const text = document.getElementById('list-data').innerText;
-    navigator.clipboard.writeText(text).then(() => showToast('✅ Copied to clipboard!'));
-  }
-
-  // Animate ring on load
-  window.addEventListener('load', () => updateProgress());
-</script>
+<script src="{{ url_for('static', filename='js/shopping.js') }}"></script>
 {% endblock %}

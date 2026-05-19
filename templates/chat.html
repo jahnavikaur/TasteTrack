@@ -1,0 +1,477 @@
+{% extends "base.html" %}
+{% block title %}AI Chat — KitchenMind AI{% endblock %}
+
+{% block extra_head %}
+<style>
+  .chat-page {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    gap: 1.5rem;
+    height: calc(100vh - 64px - 3rem);
+    padding-bottom: 0;
+  }
+
+  /* ── Sidebar ── */
+  .chat-sidebar {
+    display: flex; flex-direction: column; gap: 1rem;
+    overflow-y: auto;
+  }
+  .sidebar-section {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 1.25rem;
+  }
+  .sidebar-section h3 {
+    font-size: 0.7rem; text-transform: uppercase;
+    letter-spacing: 0.1em; color: var(--accent);
+    font-weight: 700; margin-bottom: 0.75rem;
+  }
+  .chip-btn {
+    display: block; width: 100%; text-align: left;
+    padding: 0.55rem 0.75rem; border-radius: 4px;
+    background: transparent; border: 1px solid var(--border);
+    color: var(--muted); font-size: 0.78rem;
+    cursor: pointer; margin-bottom: 0.35rem;
+    transition: all 0.18s; font-family: var(--font-body);
+    line-height: 1.4;
+  }
+  .chip-btn:hover {
+    color: var(--accent); border-color: var(--accent);
+    transform: translate(-2px,-2px);
+    box-shadow: 2px 2px 0 0 rgba(232,184,109,0.2);
+  }
+  .pantry-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+  .ptag {
+    padding: 2px 8px; border-radius: 2px; font-size: 0.7rem;
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--muted);
+  }
+  .ptag.expiring {
+    border-color: rgba(232,201,109,0.5); color: var(--yellow);
+  }
+  .expiry-alert {
+    background: rgba(232,201,109,0.08);
+    border: 1px solid rgba(232,201,109,0.2);
+    border-radius: 6px; padding: 0.6rem 0.75rem;
+    font-size: 0.78rem; color: var(--yellow);
+    margin-bottom: 0.5rem;
+  }
+
+  /* ── Chat window ── */
+  .chat-window {
+    display: flex; flex-direction: column;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; overflow: hidden;
+    min-height: 0;
+  }
+  .chat-topbar {
+    padding: 0.9rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 0.75rem;
+    flex-shrink: 0;
+  }
+  .bot-icon {
+    width: 38px; height: 38px; border-radius: 8px;
+    background: var(--accent); color: #1a1510;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem; flex-shrink: 0;
+  }
+  .bot-info h2 { font-family: var(--font-display); font-size: 1rem; }
+  .bot-info p  { font-size: 0.75rem; color: var(--muted); }
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--green); margin-left: auto;
+    box-shadow: 0 0 8px rgba(126,201,138,0.7);
+    animation: glow 2s infinite;
+  }
+  @keyframes glow {
+    0%,100% { opacity:1; box-shadow: 0 0 8px rgba(126,201,138,0.7); }
+    50%      { opacity:0.5; box-shadow: 0 0 3px rgba(126,201,138,0.3); }
+  }
+
+  /* ── Messages area ── */
+  .messages-area {
+    flex: 1; overflow-y: auto; padding: 1.25rem 1.5rem;
+    display: flex; flex-direction: column; gap: 1rem;
+    scroll-behavior: smooth;
+  }
+
+  .welcome-state {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    height: 100%; text-align: center; color: var(--muted);
+    padding: 2rem;
+  }
+  .welcome-state .wi { font-size: 3.5rem; margin-bottom: 1rem; }
+  .welcome-state h3 { font-family: var(--font-display); font-size: 1.4rem; color: var(--text); margin-bottom: 0.5rem; }
+  .welcome-state p  { font-size: 0.88rem; line-height: 1.7; max-width: 320px; }
+
+  /* ── Message bubbles ── */
+  .msg {
+    display: flex; gap: 0.6rem; align-items: flex-start;
+    animation: msgIn 0.28s cubic-bezier(0.4,0,0.2,1) both;
+  }
+  .msg.user { flex-direction: row-reverse; }
+  @keyframes msgIn {
+    from { opacity:0; transform: translateY(10px); }
+    to   { opacity:1; transform: translateY(0); }
+  }
+  .avatar {
+    width: 30px; height: 30px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.8rem; font-weight: 700; flex-shrink: 0;
+  }
+  .msg.ai   .avatar { background: var(--accent-pale); color: var(--accent); border: 1px solid rgba(232,184,109,0.3); }
+  .msg.user .avatar { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
+
+  .bubble {
+    max-width: 75%; padding: 0.8rem 1rem;
+    font-size: 0.88rem; line-height: 1.7;
+  }
+  .msg.ai   .bubble {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 2px 10px 10px 10px; color: var(--text);
+  }
+  .msg.user .bubble {
+    background: var(--accent); color: #1a1510;
+    border-radius: 10px 2px 10px 10px; font-weight: 500;
+  }
+  .msg-time {
+    font-size: 0.65rem; color: var(--muted);
+    margin-top: 4px; padding: 0 4px;
+  }
+  .msg.user .msg-time { text-align: right; }
+
+  /* Typing dots */
+  .typing-wrap {
+    display: flex; gap: 0.6rem; align-items: flex-start;
+  }
+  .typing-dots {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 2px 10px 10px 10px;
+    padding: 0.8rem 1rem;
+    display: flex; gap: 5px; align-items: center;
+  }
+  .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--muted);
+    animation: bounce 1.2s infinite;
+  }
+  .dot:nth-child(2) { animation-delay: 0.2s; }
+  .dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes bounce {
+    0%,60%,100% { transform: translateY(0); }
+    30%          { transform: translateY(-7px); }
+  }
+
+  /* ── Input area ── */
+  .input-area {
+    padding: 0.9rem 1.25rem;
+    border-top: 1px solid var(--border);
+    display: flex; gap: 0.6rem; align-items: flex-end;
+    flex-shrink: 0;
+  }
+  .input-wrap { flex: 1; }
+  #msg-input {
+    width: 100%; padding: 10px 14px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 4px; color: var(--text);
+    font-family: var(--font-body); font-size: 0.9rem;
+    resize: none; min-height: 42px; max-height: 120px;
+    line-height: 1.5; transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  #msg-input:focus {
+    outline: none; border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(232,184,109,0.12);
+  }
+  .input-meta {
+    display: flex; justify-content: space-between;
+    margin-top: 4px; font-size: 0.68rem; color: var(--muted);
+  }
+  .send-btn {
+    width: 42px; height: 42px; border-radius: 4px;
+    background: var(--accent); border: none;
+    color: #1a1510; font-size: 1rem; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 3px 3px 0 0 rgba(232,184,109,0.3);
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .send-btn:hover:not(:disabled) {
+    transform: translate(-2px,-2px);
+    box-shadow: 5px 5px 0 0 rgba(232,184,109,0.25);
+  }
+  .send-btn:disabled { opacity:0.4; cursor:not-allowed; transform:none; }
+
+  .clear-btn {
+    background: transparent; border: 1px solid var(--border);
+    border-radius: 4px; color: var(--muted); font-size: 0.72rem;
+    padding: 4px 10px; cursor: pointer;
+    transition: color 0.2s, border-color 0.2s;
+  }
+  .clear-btn:hover { color: var(--red); border-color: var(--red); }
+
+  @media(max-width:768px) {
+    .chat-page { grid-template-columns: 1fr; }
+    .chat-sidebar { display: none; }
+    .chat-window { height: calc(100vh - 130px); }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container" style="padding-bottom:0; padding-top:1.5rem;">
+  <div class="chat-page">
+
+    <!-- ── LEFT SIDEBAR ── -->
+    <div class="chat-sidebar">
+
+      {% if expiring %}
+      <div class="expiry-alert">
+        ⚡ {{ expiring|length }} item{{ 's' if expiring|length != 1 }} expiring soon!
+      </div>
+      {% endif %}
+
+      <div class="sidebar-section">
+        <h3>💡 Try Asking</h3>
+        <button class="chip-btn" onclick="useSuggestion(this)">Suggest dinner with what I have</button>
+        <button class="chip-btn" onclick="useSuggestion(this)">Kya expiring hai? Kya banana chahiye?</button>
+        <button class="chip-btn" onclick="useSuggestion(this)">Quick breakfast ideas from my pantry</button>
+        <button class="chip-btn" onclick="useSuggestion(this)">I have aata and pyaaz, what can I make?</button>
+        <button class="chip-btn" onclick="useSuggestion(this)">Full recipe for dal tadka please</button>
+        <button class="chip-btn" onclick="useSuggestion(this)">What am I missing for paneer butter masala?</button>
+        <button class="chip-btn" onclick="useSuggestion(this)">Give me a healthy lunch idea</button>
+      </div>
+
+      <div class="sidebar-section">
+        <h3>🧺 Your Pantry ({{ pantry_items|length }} items)</h3>
+        {% if pantry_items %}
+        <div class="pantry-tags">
+          {% for item in pantry_items %}
+          {% set days = (item.expiry_date - today).days if item.expiry_date else 999 %}
+          <span class="ptag {% if days <= 5 %}expiring{% endif %}"
+                title="{{ item.quantity }} {{ item.unit }}{% if days <= 5 %} — expires in {{ days }}d{% endif %}">
+            {{ item.item_name }}
+          </span>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p style="font-size:0.8rem;color:var(--muted);">
+          No items yet.
+          <a href="/pantry" style="color:var(--accent);">Add ingredients →</a>
+        </p>
+        {% endif %}
+      </div>
+
+      <div class="sidebar-section">
+        <h3>⚡ Quick Links</h3>
+        <a href="/pantry"       class="chip-btn" style="text-decoration:none;display:block;">🧺 Manage Pantry</a>
+        <a href="/recommend"    class="chip-btn" style="text-decoration:none;display:block;">✨ Recipe Engine</a>
+        <a href="/weekly_plan"  class="chip-btn" style="text-decoration:none;display:block;">📅 Weekly Planner</a>
+        <a href="/shopping_list" class="chip-btn" style="text-decoration:none;display:block;">🛒 Shopping List</a>
+      </div>
+
+    </div>
+
+    <!-- ── CHAT WINDOW ── -->
+    <div class="chat-window">
+
+      <!-- Top bar -->
+      <div class="chat-topbar">
+        <div class="bot-icon">🍳</div>
+        <div class="bot-info">
+          <h2>KitchenMind AI</h2>
+          <p>Powered by Llama 3 · Reads your pantry live</p>
+        </div>
+        <button class="clear-btn" onclick="clearChat()" title="Clear conversation">
+          Clear
+        </button>
+        <div class="status-dot"></div>
+      </div>
+
+      <!-- Messages -->
+      <div class="messages-area" id="messages">
+        <div class="welcome-state" id="welcome">
+          <div class="wi">👨‍🍳</div>
+          <h3>Namaste, {{ current_user.username }}!</h3>
+          <p>
+            I know exactly what's in your kitchen right now —
+            <strong>{{ pantry_items|length }} ingredient{{ 's' if pantry_items|length != 1 }}</strong>.
+            Ask me anything in Hindi or English!
+          </p>
+        </div>
+      </div>
+
+      <!-- Input -->
+      <div class="input-area">
+        <div class="input-wrap">
+          <textarea id="msg-input"
+            placeholder="'Aaj kya banao?' or 'Suggest dinner with my ingredients...'"
+            rows="1" maxlength="500"></textarea>
+          <div class="input-meta">
+            <span style="color:var(--muted);">Enter to send · Shift+Enter for new line</span>
+            <span id="char-count">0 / 500</span>
+          </div>
+        </div>
+        <button class="send-btn" id="send-btn" onclick="sendMessage()">➤</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const messagesEl = document.getElementById('messages');
+  const inputEl    = document.getElementById('msg-input');
+  const sendBtn    = document.getElementById('send-btn');
+  const charEl     = document.getElementById('char-count');
+
+  let history = [];   // conversation history [{role, content}, ...]
+  let msgCount = 0;
+
+  // ── Auto resize textarea ──
+  inputEl.addEventListener('input', () => {
+    inputEl.style.height = 'auto';
+    inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + 'px';
+    charEl.textContent = inputEl.value.length + ' / 500';
+    charEl.style.color = inputEl.value.length > 450 ? 'var(--yellow)' : 'var(--muted)';
+  });
+
+  // ── Enter to send ──
+  inputEl.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
+
+  function useSuggestion(btn) {
+    inputEl.value = btn.textContent.trim();
+    charEl.textContent = inputEl.value.length + ' / 500';
+    inputEl.focus();
+    sendMessage();
+  }
+
+  function clearChat() {
+    if (!confirm('Clear this conversation?')) return;
+    history = [];
+    msgCount = 0;
+    messagesEl.innerHTML = `
+      <div class="welcome-state" id="welcome">
+        <div class="wi">👨‍🍳</div>
+        <h3>Conversation cleared!</h3>
+        <p>Ask me anything about your kitchen.</p>
+      </div>`;
+  }
+
+  function getTime() {
+    return new Date().toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'});
+  }
+
+  function removeWelcome() {
+    const w = document.getElementById('welcome');
+    if (w) w.remove();
+  }
+
+  function addMessage(role, text) {
+    removeWelcome();
+    msgCount++;
+
+    const isUser = role === 'user';
+    const avatarContent = isUser
+      ? '{{ current_user.username[0].upper() }}'
+      : '🍳';
+
+    const div = document.createElement('div');
+    div.className = `msg ${role}`;
+    div.innerHTML = `
+      <div class="avatar">${avatarContent}</div>
+      <div>
+        <div class="bubble">${formatMsg(text)}</div>
+        <div class="msg-time">${getTime()}</div>
+      </div>
+    `;
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  function showTyping() {
+    removeWelcome();
+    const div = document.createElement('div');
+    div.className = 'typing-wrap';
+    div.id = 'typing';
+    div.innerHTML = `
+      <div class="avatar" style="background:var(--accent-pale);color:var(--accent);border:1px solid rgba(232,184,109,0.3);width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.8rem;flex-shrink:0;">🍳</div>
+      <div class="typing-dots">
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+      </div>`;
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  function removeTyping() {
+    const t = document.getElementById('typing');
+    if (t) t.remove();
+  }
+
+  function formatMsg(text) {
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      .replace(/\n/g, '<br>');
+  }
+
+  async function sendMessage() {
+    const text = inputEl.value.trim();
+    if (!text || sendBtn.disabled) return;
+
+    // Show user message
+    addMessage('user', text);
+    inputEl.value = '';
+    inputEl.style.height = 'auto';
+    charEl.textContent = '0 / 500';
+
+    // Lock UI
+    sendBtn.disabled = true;
+    inputEl.disabled = true;
+    showTyping();
+
+    try {
+      const res  = await fetch('/chat/send', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ message: text, history: history })
+      });
+
+      if (!res.ok) throw new Error('Server error ' + res.status);
+
+      const data  = await res.json();
+      const reply = data.reply || 'Sorry, I could not get a response.';
+
+      removeTyping();
+      addMessage('ai', reply);
+
+      // Save to history for multi-turn
+      history.push({ role: 'user',      content: text  });
+      history.push({ role: 'assistant', content: reply });
+
+      // Trim history to last 20 exchanges
+      if (history.length > 20) history = history.slice(-20);
+
+    } catch (err) {
+      removeTyping();
+      addMessage('ai', '⚠ Connection error. Please check your internet and try again.');
+    } finally {
+      sendBtn.disabled = false;
+      inputEl.disabled = false;
+      inputEl.focus();
+    }
+  }
+</script>
+{% endblock %}
