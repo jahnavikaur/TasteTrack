@@ -1,12 +1,21 @@
 # chatbot.py
 import os
-from groq import Groq
 from datetime import date
 from dotenv import load_dotenv
 
 load_dotenv()
 
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+groq_api_key = os.getenv("GROQ_API_KEY")
+client = None
+if groq_api_key:
+    try:
+        from groq import Groq
+        client = Groq(api_key=groq_api_key)
+    except Exception as e:
+        print(f"Warning: could not initialize Groq client: {e}")
+else:
+    print("Warning: GROQ_API_KEY is not set. Chat functionality will be disabled.")
+
 
 def build_system_prompt(pantry_items: list) -> str:
     today = date.today().strftime("%B %d, %Y")
@@ -83,9 +92,12 @@ def chat_with_ai(user_message: str, pantry_items: list, conversation_history: li
         {"role": "user", "content": user_message}
     ]
 
+    if client is None:
+        return "Chat is unavailable because GROQ_API_KEY is not configured. Please add it to your .env file."
+
     try:
         response = client.chat.completions.create(
-           model="llama-3.3-70b-versatile",
+            model="llama3-8b-8192",
             messages=messages,
             max_tokens=800,
             temperature=0.7,
@@ -102,4 +114,3 @@ def chat_with_ai(user_message: str, pantry_items: list, conversation_history: li
             return "Connection error. Please check your internet and try again."
         else:
             return f"Something went wrong: {error}"
-        
