@@ -95,6 +95,22 @@ The SQLite database (`instance/kitchen.db`) is created automatically on first ru
 
 `dataset/recipes.csv` includes recipes with fields for `recipe_id`, `name`, `meal_type`, `ingredients`, `cuisine`, `cooking_time`, and `instructions` — primarily Indian home-style dishes.
 
+## 🔮 Future Advancements
+
+Ideas for taking TasteTrack further:
+
+- **🖼️ Recipe Images** — Add photos/thumbnails for each recipe in the dataset and display them in the recommendation and plan views.
+- **📷 Pantry Input via Receipt/Barcode Scan** — Let users add items by scanning a grocery receipt or product barcode instead of manual entry.
+- **🌍 Expanded & Multi-Cuisine Dataset** — Grow beyond the current Indian home-style dataset to include more cuisines, with user-contributed recipes and moderation.
+- **🥗 Nutrition & Calorie Tracking** — Add nutritional info (calories, macros) per recipe and daily/weekly nutrition summaries.
+- **🔔 Expiry Notifications** — Email/push/SMS reminders when pantry items are about to expire, instead of relying on the user visiting the dashboard.
+- **👨‍👩‍👧 Multi-User Households** — Shared pantries and shopping lists for families or roommates, with per-person preference profiles feeding into a combined recommendation.
+- **🎙️ Voice Assistant Support** — Extend the chatbot to accept voice input/output (e.g. "Alexa, what can I cook with what's in my fridge?").
+- **📱 Mobile App / PWA** — Package the app as a Progressive Web App or native mobile app for offline pantry access and notifications.
+- **📈 Analytics Dashboard 2.0** — Deeper insights like monthly food waste saved, cost estimates for shopping lists, and cuisine diversity trends over time.
+- **🗄️ Database Migration Support** — Add Flask-Migrate/Alembic for schema migrations and move from SQLite to PostgreSQL for production deployments.
+- **♻️ Food Waste Insights** — Track and report how much food was "saved" by prioritizing expiring ingredients, turning it into a shareable sustainability metric.
+
 ## 🤝 Contributing
 
 Contributions are welcome! Feel free to open an issue or submit a pull request.
